@@ -1,0 +1,105 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: database
+    restart: unless-stopped
+
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+
+
+    volumes:
+    - mysql_data:/var/lib/mysql
+    - ../database:/docker-entrypoint-initdb.d
+
+
+    ports:
+      - "${DB_PORT}:3306"
+
+    networks:
+      - practica-network
+
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+
+
+  backend:
+    build:
+     context: ../backend
+     dockerfile: Dockerfile
+
+
+    container_name: backend
+    restart: unless-stopped
+
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: ${DB_DATABASE}
+      PORT: ${PORT}
+      SECRET_GUARD: ${SECRET_GUARD}
+      PUBLIC_URL: ${PUBLIC_URL}
+
+
+    ports:
+      - "${PORT}:3010"
+
+    volumes:
+      - ../backend:/app
+      - /app/node_modules
+      - backend_uploads:/app/public/uploads
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    networks:
+      - practica-network
+
+
+
+  frontend:
+    build:
+     context: ../frontend
+     dockerfile: Dockerfile
+
+    container_name: frontend
+    restart: unless-stopped
+
+    ports:
+      - "${PORT_FRONT}:3000"
+
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+
+    depends_on:
+      - backend
+
+
+    networks:
+      - practica-network
+
+networks:
+  practica-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+
+  backend_uploads:
+    driver: local
