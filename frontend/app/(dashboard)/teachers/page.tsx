@@ -104,8 +104,8 @@ export default function TeachersPage() {
 
   const deleteMut = useMutation({
     mutationFn: teachersService.delete,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['teachers'] }); setDeleteTarget(null); toast.success('Maestro eliminado'); },
-    onError: (e: any) => { setDeleteTarget(null); toast.error(e.response?.data?.message || 'Error al eliminar'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['teachers'] }); setDeleteTarget(null); toast.success('Maestro desactivado'); },
+    onError: (e: any) => { setDeleteTarget(null); toast.error(e.response?.data?.message || 'Error al desactivar'); },
   });
 
   const columns = [
@@ -177,9 +177,9 @@ export default function TeachersPage() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="¿Eliminar maestro?"
-        description={`Esto eliminará a "${deleteTarget?.user.nombre}" de forma permanente.`}
-        confirmLabel="Eliminar"
+        title="¿Desactivar maestro?"
+        description={`"${deleteTarget?.user.nombre}" quedará inactivo pero sus datos se conservarán.`}
+        confirmLabel="Desactivar"
         loading={deleteMut.isPending}
         onConfirm={() => deleteTarget && deleteMut.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)}

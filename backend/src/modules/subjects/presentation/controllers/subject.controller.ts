@@ -39,7 +39,7 @@ export class SubjectController {
   @Get()
   @Roles('admin', 'maestro', 'alumno')
   findAll() {
-    return this.subjectRepo.find({ relations: ['teacher', 'teacher.user'] });
+    return this.subjectRepo.find({ where: { activo: true }, relations: ['teacher', 'teacher.user'] });
   }
 
   @Get(':id')
@@ -89,8 +89,9 @@ export class SubjectController {
   async remove(@Param('id', ParseIntPipe) id: number) {
     const subject = await this.subjectRepo.findOne({ where: { id } });
     if (!subject) throw new NotFoundException('Materia no encontrada');
-    await this.subjectRepo.remove(subject);
-    return { message: 'Materia eliminada' };
+    subject.activo = false;
+    await this.subjectRepo.save(subject);
+    return { message: 'Materia desactivada' };
   }
 
   @Post(':id/enroll')

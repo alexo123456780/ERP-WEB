@@ -44,8 +44,8 @@ export default function SubjectsPage() {
 
   const deleteMut = useMutation({
     mutationFn: subjectsService.delete,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['subjects'] }); setDeleteTarget(null); toast.success('Materia eliminada'); },
-    onError: (e: any) => { setDeleteTarget(null); toast.error(e.response?.data?.message || 'Error al eliminar'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['subjects'] }); setDeleteTarget(null); toast.success('Materia desactivada'); },
+    onError: (e: any) => { setDeleteTarget(null); toast.error(e.response?.data?.message || 'Error al desactivar'); },
   });
 
   const enrollMut = useMutation({
@@ -156,9 +156,9 @@ export default function SubjectsPage() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="¿Eliminar materia?"
-        description={`Esto eliminará "${deleteTarget?.nombre}" y todos sus datos asociados.`}
-        confirmLabel="Eliminar"
+        title="¿Desactivar materia?"
+        description={`"${deleteTarget?.nombre}" quedará inactiva y dejará de aparecer en los listados.`}
+        confirmLabel="Desactivar"
         loading={deleteMut.isPending}
         onConfirm={() => deleteTarget && deleteMut.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)}
