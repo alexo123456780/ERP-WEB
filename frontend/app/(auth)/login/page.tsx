@@ -1,26 +1,34 @@
 'use client';
 import { useState } from 'react';
-import { GraduationCap } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
+import { FieldError } from '../../../components/ui/FieldError';
+import { useFormValidation } from '../../../hooks/useFormValidation';
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const { values, handleChange, handleBlur, validate, fieldError, submitDisabled } = useFormValidation(
+    { email: '', password: '' },
+    {
+      email: [{ type: 'required' }, { type: 'email' }],
+      password: [{ type: 'required' }],
+    },
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      await login(values.email, values.password);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al iniciar sesión');
     } finally {
@@ -43,30 +51,34 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="email">Correo electrónico</Label>
                 <Input
                   id="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                  value={values.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  onBlur={() => handleBlur('email')}
+                  aria-invalid={!!fieldError('email')}
                   placeholder="admin@escuela.com"
                   autoComplete="email"
                 />
+                <FieldError message={fieldError('email')} />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="password">Contraseña</Label>
                 <Input
                   id="password"
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  value={values.password}
+                  onChange={(e) => handleChange('password', e.target.value)}
+                  onBlur={() => handleBlur('password')}
+                  aria-invalid={!!fieldError('password')}
                   placeholder="••••••••"
                   autoComplete="current-password"
                 />
+                <FieldError message={fieldError('password')} />
               </div>
 
               {error && (
@@ -75,7 +87,7 @@ export default function LoginPage() {
                 </Alert>
               )}
 
-              <Button type="submit" disabled={loading} className="w-full">
+              <Button type="submit" disabled={loading || submitDisabled} className="w-full">
                 {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
               </Button>
             </form>

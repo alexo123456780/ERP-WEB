@@ -23,7 +23,7 @@ import { LoginDto } from '../dtos/login.dto';
 import { RegisterDto } from '../dtos/register.dto';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { UserEntity } from '../../../users/domain/entities/user.entity';
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MinLength, Matches } from 'class-validator';
 
 class UpdateProfileDto {
   @IsOptional()
@@ -36,7 +36,11 @@ class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(6)
+  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
+  @Matches(/[A-Z]/, { message: 'La contraseña debe incluir al menos una letra mayúscula' })
+  @Matches(/[a-z]/, { message: 'La contraseña debe incluir al menos una letra minúscula' })
+  @Matches(/\d/, { message: 'La contraseña debe incluir al menos un número' })
+  @Matches(/[!@#$%^&*()\-_=+[\]{};':",.<>/?\\|`~]/, { message: 'La contraseña debe incluir al menos un carácter especial' })
   password?: string;
 }
 

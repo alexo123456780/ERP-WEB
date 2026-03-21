@@ -8,9 +8,14 @@ import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { FormField, inputClass } from '../../../components/ui/FormField';
+import { PasswordStrengthInput, isPasswordValid } from '../../../components/ui/PasswordStrengthInput';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Spinner } from '../../../components/ui/Spinner';
+import { useFormValidation } from '../../../hooks/useFormValidation';
+import { validationMessages as vm } from '../../../lib/validationMessages';
+import { useRole } from '../../../hooks/useRole';
+import { can } from '../../../lib/permissions';
 import { Teacher } from '../../../types';
 
 type FilterActivo = 'all' | 'true' | 'false';
@@ -20,31 +25,69 @@ function TeacherForm({ onSubmit, loading, initial }: {
   loading: boolean;
   initial?: Partial<Teacher>;
 }) {
-  const [form, setForm] = useState({
-    nombre: initial?.user?.nombre ?? '',
-    email: initial?.user?.email ?? '',
-    password: '',
-    especialidad: initial?.especialidad ?? '',
-  });
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const { values, handleChange, handleBlur, validate, fieldError, submitDisabled } = useFormValidation(
+    {
+      nombre: initial?.user?.nombre ?? '',
+      email: initial?.user?.email ?? '',
+      password: '',
+      especialidad: initial?.especialidad ?? '',
+    },
+    {
+      nombre: [{ type: 'required' }],
+      email: [{ type: 'required' }, { type: 'email' }],
+    },
+  );
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-4">
-      <FormField label="Nombre completo">
-        <input className={inputClass} value={form.nombre} onChange={(e) => set('nombre', e.target.value)} required placeholder="Lic. María García López" />
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!validate()) return;
+        if (!initial && !isPasswordValid(values.password)) {
+          toast.error(vm.passwordWeak);
+          return;
+        }
+        onSubmit(values);
+      }}
+      className="space-y-4"
+    >
+      <FormField label="Nombre completo" error={fieldError('nombre')}>
+        <input
+          className={inputClass}
+          value={values.nombre}
+          onChange={(e) => handleChange('nombre', e.target.value)}
+          onBlur={() => handleBlur('nombre')}
+          placeholder="Lic. María García López"
+        />
       </FormField>
-      <FormField label="Correo electrónico">
-        <input type="email" className={inputClass} value={form.email} onChange={(e) => set('email', e.target.value)} required placeholder="maestro@escuela.com" />
+      <FormField label="Correo electrónico" error={fieldError('email')}>
+        <input
+          type="email"
+          className={inputClass}
+          value={values.email}
+          onChange={(e) => handleChange('email', e.target.value)}
+          onBlur={() => handleBlur('email')}
+          placeholder="maestro@escuela.com"
+        />
       </FormField>
       {!initial && (
         <FormField label="Contraseña">
-          <input type="password" className={inputClass} value={form.password} onChange={(e) => set('password', e.target.value)} required minLength={6} placeholder="Mínimo 6 caracteres" />
+          <PasswordStrengthInput
+            value={values.password}
+            onChange={(v) => handleChange('password', v)}
+            required
+          />
         </FormField>
       )}
       <FormField label="Especialidad">
-        <input className={inputClass} value={form.especialidad} onChange={(e) => set('especialidad', e.target.value)} placeholder="Matemáticas, Ciencias..." />
+        <input
+          className={inputClass}
+          value={values.especialidad}
+          onChange={(e) => handleChange('especialidad', e.target.value)}
+          placeholder="Matemáticas, Ciencias..."
+        />
       </FormField>
-      <Button type="submit" disabled={loading} className="w-full gap-2">
+      <Button type="submit" disabled={loading || submitDisabled} className="w-full gap-2">
         {loading && <Spinner size="xs" />}
         {loading ? 'Guardando...' : 'Guardar'}
       </Button>
@@ -77,6 +120,7 @@ function TeacherInfoModal({ teacher, onClose }: { teacher: Teacher; onClose: () 
 }
 
 export default function TeachersPage() {
+  const role = useRole();
   const qc = useQueryClient();
   const [filterActivo, setFilterActivo] = useState<FilterActivo>('all');
   const [modal, setModal] = useState<{ type: 'create' | 'edit'; teacher?: Teacher } | null>(null);
@@ -128,12 +172,16 @@ export default function TeachersPage() {
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setViewTeacher(r)} title="Ver detalle">
             <Eye className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setModal({ type: 'edit', teacher: r })} title="Editar">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(r)} title="Eliminar">
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          {role && can.editTeacher(role) && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setModal({ type: 'edit', teacher: r })} title="Editar">
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {role && can.deleteTeacher(role) && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(r)} title="Eliminar">
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       ),
     },
@@ -149,9 +197,11 @@ export default function TeachersPage() {
           <h2 className="text-2xl font-bold tracking-tight">Maestros</h2>
           <p className="text-sm text-muted-foreground">{teachers.length} maestro{teachers.length !== 1 ? 's' : ''} registrado{teachers.length !== 1 ? 's' : ''}</p>
         </div>
-        <Button onClick={() => setModal({ type: 'create' })} size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />Nuevo maestro
-        </Button>
+        {role && can.createTeacher(role) && (
+          <Button onClick={() => setModal({ type: 'create' })} size="sm">
+            <Plus className="h-4 w-4 mr-1.5" />Nuevo maestro
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-1 bg-muted/40 rounded-lg p-1 w-fit border border-border">
@@ -169,8 +219,12 @@ export default function TeachersPage() {
           initial={modal?.teacher}
           loading={createMut.isPending || updateMut.isPending}
           onSubmit={(data) => {
-            if (modal?.type === 'create') createMut.mutate(data);
-            else if (modal?.teacher) updateMut.mutate({ id: modal.teacher.id, data });
+            if (modal?.type === 'create') {
+              createMut.mutate(data);
+            } else if (modal?.teacher) {
+              const { password, ...updateData } = data;
+              updateMut.mutate({ id: modal.teacher.id, data: updateData });
+            }
           }}
         />
       </Modal>

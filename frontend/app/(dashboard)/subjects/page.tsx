@@ -13,9 +13,12 @@ import { FormField, inputClass } from '../../../components/ui/FormField';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Spinner } from '../../../components/ui/Spinner';
+import { useRole } from '../../../hooks/useRole';
+import { can } from '../../../lib/permissions';
 import { Subject } from '../../../types';
 
 export default function SubjectsPage() {
+  const role = useRole();
   const qc = useQueryClient();
   const [modal, setModal] = useState<'create' | 'edit' | 'enroll' | null>(null);
   const [selected, setSelected] = useState<Subject | null>(null);
@@ -71,16 +74,22 @@ export default function SubjectsPage() {
       key: 'actions', header: '',
       render: (r: Subject) => (
         <div className="flex justify-end gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)} title="Editar">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-            onClick={() => { setSelected(r); setEnrollForm({ student_id: '', ciclo: '' }); setModal('enroll'); }} title="Inscribir alumno">
-            <UserPlus className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(r)} title="Eliminar">
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          {role && can.editSubject(role) && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)} title="Editar">
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {role && can.enrollStudent(role) && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+              onClick={() => { setSelected(r); setEnrollForm({ student_id: '', ciclo: '' }); setModal('enroll'); }} title="Inscribir alumno">
+              <UserPlus className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {role && can.deleteSubject(role) && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(r)} title="Eliminar">
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       ),
     },
@@ -93,9 +102,11 @@ export default function SubjectsPage() {
           <h2 className="text-2xl font-bold tracking-tight">Materias</h2>
           <p className="text-sm text-muted-foreground">{subjects.length} materia{subjects.length !== 1 ? 's' : ''} registrada{subjects.length !== 1 ? 's' : ''}</p>
         </div>
-        <Button onClick={() => { setForm({ nombre: '', descripcion: '', creditos: '0', teacher_id: '' }); setModal('create'); }} size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />Nueva materia
-        </Button>
+        {role && can.createSubject(role) && (
+          <Button onClick={() => { setForm({ nombre: '', descripcion: '', creditos: '0', teacher_id: '' }); setModal('create'); }} size="sm">
+            <Plus className="h-4 w-4 mr-1.5" />Nueva materia
+          </Button>
+        )}
       </div>
 
       <DataTable columns={columns} data={subjects} loading={isLoading} emptyMessage="No hay materias registradas" />
