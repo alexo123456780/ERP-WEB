@@ -29,6 +29,9 @@ export const can = {
   viewAttendance:   (r: Role) => true,
   createAttendance: (r: Role) => r === 'admin' || r === 'maestro',
 
+  // Dashboard
+  viewDashboardCharts: (r: Role) => r === 'admin',
+
   // Pagos
   viewPayments:        (r: Role) => r === 'admin' || r === 'alumno' || r === 'padre',
   createPayment:       (r: Role) => r === 'admin',

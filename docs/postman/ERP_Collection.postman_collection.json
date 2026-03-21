@@ -1,0 +1,814 @@
+{
+  "info": {
+    "_postman_id": "erp-school-collection-v1",
+    "name": "ERP Escolar",
+    "description": "Colección completa de endpoints del ERP Escolar. Módulos: Auth, Usuarios, Alumnos, Maestros, Materias, Calificaciones, Asistencias, Pagos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "    pm.environment.set(\"token\", res.access_token);",
+                  "    console.log(\"Token guardado:\", res.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@erp.com\",\n  \"password\": \"Admin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Autentica un usuario y guarda automáticamente el access_token en la variable de entorno `token`."
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Juan Pérez\",\n  \"email\": \"juan.perez@erp.com\",\n  \"password\": \"Alumno123!\",\n  \"role\": \"alumno\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Registra un nuevo usuario en el sistema."
+          }
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Retorna el perfil del usuario autenticado."
+          }
+        },
+        {
+          "name": "Update Me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Juan Pérez Actualizado\",\n  \"email\": \"juan.nuevo@erp.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Actualiza los datos del perfil del usuario autenticado."
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": "",
+                  "description": "Archivo de imagen (jpg/png/webp, máx 2MB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/me/avatar",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me", "avatar"]
+            },
+            "description": "Sube una imagen de avatar para el usuario autenticado (form-data, campo `avatar`)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Listar Usuarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["users"]
+            },
+            "description": "Retorna todos los usuarios. Rol requerido: admin."
+          }
+        },
+        {
+          "name": "Obtener Usuario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            },
+            "description": "Retorna un usuario por su ID."
+          }
+        },
+        {
+          "name": "Crear Usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "    pm.environment.set(\"user_id\", res.id);",
+                  "    console.log(\"user_id guardado:\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Carlos López\",\n  \"email\": \"carlos.lopez@erp.com\",\n  \"password\": \"Maestro123!\",\n  \"role\": \"maestro\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["users"]
+            },
+            "description": "Crea un nuevo usuario. Guarda automáticamente el `user_id`."
+          }
+        },
+        {
+          "name": "Actualizar Usuario",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Carlos López Modificado\",\n  \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            },
+            "description": "Actualiza los datos de un usuario."
+          }
+        },
+        {
+          "name": "Eliminar Usuario",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{user_id}}"]
+            },
+            "description": "Elimina un usuario (hard delete)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alumnos",
+      "item": [
+        {
+          "name": "Listar Alumnos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/students?activo=true",
+              "host": ["{{base_url}}"],
+              "path": ["students"],
+              "query": [
+                { "key": "activo", "value": "true", "description": "Filtrar por estado activo/inactivo" }
+              ]
+            },
+            "description": "Retorna todos los alumnos. Query params: `activo=true` o `activo=false`."
+          }
+        },
+        {
+          "name": "Obtener Alumno",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/students/{{student_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["students", "{{student_id}}"]
+            },
+            "description": "Retorna un alumno por su ID."
+          }
+        },
+        {
+          "name": "Crear Alumno",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "    pm.environment.set(\"student_id\", res.id);",
+                  "    console.log(\"student_id guardado:\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"María García\",\n  \"email\": \"maria.garcia@erp.com\",\n  \"password\": \"Alumno123\",\n  \"curp\": \"GARM050310MDFRCR09\",\n  \"fecha_nacimiento\": \"2005-03-10\",\n  \"telefono\": \"5512345678\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/students",
+              "host": ["{{base_url}}"],
+              "path": ["students"]
+            },
+            "description": "Crea un nuevo alumno. Guarda automáticamente el `student_id`."
+          }
+        },
+        {
+          "name": "Actualizar Alumno",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"María García Actualizada\",\n  \"telefono\": \"5598765432\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/students/{{student_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["students", "{{student_id}}"]
+            },
+            "description": "Actualiza los datos de un alumno."
+          }
+        },
+        {
+          "name": "Eliminar Alumno",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/students/{{student_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["students", "{{student_id}}"]
+            },
+            "description": "Soft delete — desactiva el alumno y su usuario asociado."
+          }
+        },
+        {
+          "name": "Historial del Alumno",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/students/{{student_id}}/history",
+              "host": ["{{base_url}}"],
+              "path": ["students", "{{student_id}}", "history"]
+            },
+            "description": "Retorna inscripciones con materias, calificaciones y asistencia del alumno."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Maestros",
+      "item": [
+        {
+          "name": "Listar Maestros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/teachers?activo=true",
+              "host": ["{{base_url}}"],
+              "path": ["teachers"],
+              "query": [
+                { "key": "activo", "value": "true", "description": "Filtrar por estado activo/inactivo" }
+              ]
+            },
+            "description": "Retorna todos los maestros. Query params: `activo=true` o `activo=false`."
+          }
+        },
+        {
+          "name": "Obtener Maestro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{teacher_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["teachers", "{{teacher_id}}"]
+            },
+            "description": "Retorna un maestro por su ID."
+          }
+        },
+        {
+          "name": "Crear Maestro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "    pm.environment.set(\"teacher_id\", res.id);",
+                  "    console.log(\"teacher_id guardado:\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Dr. Roberto Sánchez\",\n  \"email\": \"roberto.sanchez@erp.com\",\n  \"password\": \"Maestro123\",\n  \"especialidad\": \"Matemáticas\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/teachers",
+              "host": ["{{base_url}}"],
+              "path": ["teachers"]
+            },
+            "description": "Crea un nuevo maestro. Guarda automáticamente el `teacher_id`."
+          }
+        },
+        {
+          "name": "Actualizar Maestro",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Dr. Roberto Sánchez M.\",\n  \"especialidad\": \"Matemáticas y Física\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/teachers/{{teacher_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["teachers", "{{teacher_id}}"]
+            },
+            "description": "Actualiza los datos de un maestro."
+          }
+        },
+        {
+          "name": "Eliminar Maestro",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{teacher_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["teachers", "{{teacher_id}}"]
+            },
+            "description": "Soft delete — desactiva al maestro."
+          }
+        },
+        {
+          "name": "Materias del Maestro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/teachers/{{teacher_id}}/subjects",
+              "host": ["{{base_url}}"],
+              "path": ["teachers", "{{teacher_id}}", "subjects"]
+            },
+            "description": "Retorna las materias asignadas al maestro."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Materias",
+      "item": [
+        {
+          "name": "Listar Materias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/subjects",
+              "host": ["{{base_url}}"],
+              "path": ["subjects"]
+            },
+            "description": "Retorna todas las materias activas con datos del maestro."
+          }
+        },
+        {
+          "name": "Obtener Materia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/subjects/{{subject_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["subjects", "{{subject_id}}"]
+            },
+            "description": "Retorna una materia por su ID."
+          }
+        },
+        {
+          "name": "Crear Materia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "    pm.environment.set(\"subject_id\", res.id);",
+                  "    console.log(\"subject_id guardado:\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Álgebra Lineal\",\n  \"descripcion\": \"Fundamentos de vectores, matrices y transformaciones lineales\",\n  \"creditos\": 8,\n  \"teacher_id\": \"{{teacher_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/subjects",
+              "host": ["{{base_url}}"],
+              "path": ["subjects"]
+            },
+            "description": "Crea una nueva materia. Guarda automáticamente el `subject_id`."
+          }
+        },
+        {
+          "name": "Actualizar Materia",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Álgebra Lineal Avanzada\",\n  \"creditos\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/subjects/{{subject_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["subjects", "{{subject_id}}"]
+            },
+            "description": "Actualiza los datos de una materia."
+          }
+        },
+        {
+          "name": "Eliminar Materia",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/subjects/{{subject_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["subjects", "{{subject_id}}"]
+            },
+            "description": "Soft delete — desactiva la materia."
+          }
+        },
+        {
+          "name": "Inscribir Alumno en Materia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "    pm.environment.set(\"enrollment_id\", res.id);",
+                  "    console.log(\"enrollment_id guardado:\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_id\": \"{{student_id}}\",\n  \"ciclo\": \"2026-1\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/subjects/{{subject_id}}/enroll",
+              "host": ["{{base_url}}"],
+              "path": ["subjects", "{{subject_id}}", "enroll"]
+            },
+            "description": "Inscribe un alumno en la materia. Guarda automáticamente el `enrollment_id`."
+          }
+        },
+        {
+          "name": "Alumnos de la Materia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/subjects/{{subject_id}}/students",
+              "host": ["{{base_url}}"],
+              "path": ["subjects", "{{subject_id}}", "students"]
+            },
+            "description": "Retorna las inscripciones con datos de alumno de la materia."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Calificaciones",
+      "item": [
+        {
+          "name": "Crear Calificación",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enrollment_id\": \"{{enrollment_id}}\",\n  \"parcial\": 1,\n  \"calificacion\": 88,\n  \"fecha\": \"2026-03-21\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/grades",
+              "host": ["{{base_url}}"],
+              "path": ["grades"]
+            },
+            "description": "Registra una calificación para una inscripción en un parcial."
+          }
+        },
+        {
+          "name": "Calificaciones del Alumno",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/grades/student/{{student_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["grades", "student", "{{student_id}}"]
+            },
+            "description": "Retorna todas las calificaciones del alumno con datos de inscripción y materia."
+          }
+        },
+        {
+          "name": "Calificaciones de la Materia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/grades/subject/{{subject_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["grades", "subject", "{{subject_id}}"]
+            },
+            "description": "Retorna calificaciones de la materia con datos de inscripción, alumno y usuario."
+          }
+        },
+        {
+          "name": "Promedio del Alumno",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/grades/student/{{student_id}}/average",
+              "host": ["{{base_url}}"],
+              "path": ["grades", "student", "{{student_id}}", "average"]
+            },
+            "description": "Retorna el promedio general del alumno: `{ average, total, grades[] }`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Asistencias",
+      "item": [
+        {
+          "name": "Registrar Asistencia",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enrollment_id\": \"{{enrollment_id}}\",\n  \"fecha\": \"2026-03-21\",\n  \"presente\": true,\n  \"justificado\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/attendance",
+              "host": ["{{base_url}}"],
+              "path": ["attendance"]
+            },
+            "description": "Registra la asistencia de un alumno inscrito."
+          }
+        },
+        {
+          "name": "Resumen de Asistencia del Alumno",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/attendance/student/{{student_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", "student", "{{student_id}}"]
+            },
+            "description": "Retorna `{ records[], resumen: { total, presentes, ausentes, porcentaje_asistencia, alerta? } }`. Incluye campo `alerta` si la asistencia cae por debajo del 80%."
+          }
+        },
+        {
+          "name": "Asistencias por Materia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/attendance/subject/{{subject_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", "subject", "{{subject_id}}"]
+            },
+            "description": "Retorna registros de asistencia de la materia con datos de inscripción, alumno y usuario."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pagos",
+      "item": [
+        {
+          "name": "Crear Pago",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) {",
+                  "    pm.environment.set(\"payment_id\", res.id);",
+                  "    console.log(\"payment_id guardado:\", res.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_id\": \"{{student_id}}\",\n  \"concepto\": \"Colegiatura Marzo 2026\",\n  \"monto\": 2500.00,\n  \"fecha_pago\": \"2026-03-21\",\n  \"estado\": \"pagado\",\n  \"ciclo\": \"2026-1\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments",
+              "host": ["{{base_url}}"],
+              "path": ["payments"]
+            },
+            "description": "Crea un nuevo registro de pago. Guarda automáticamente el `payment_id`."
+          }
+        },
+        {
+          "name": "Listar Todos los Pagos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments",
+              "host": ["{{base_url}}"],
+              "path": ["payments"]
+            },
+            "description": "Retorna todos los pagos con datos de alumno y usuario, ordenados por ciclo DESC. Rol requerido: admin."
+          }
+        },
+        {
+          "name": "Listar Pagos Pendientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/pending",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "pending"]
+            },
+            "description": "Retorna solo los pagos con `estado = 'pendiente'`."
+          }
+        },
+        {
+          "name": "Pagos del Alumno",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/student/{{student_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "student", "{{student_id}}"]
+            },
+            "description": "Retorna todos los pagos del alumno ordenados por ciclo DESC."
+          }
+        },
+        {
+          "name": "Actualizar Estado de Pago",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"pagado\",\n  \"fecha_pago\": \"2026-03-21\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/{{payment_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "{{payment_id}}", "status"]
+            },
+            "description": "Actualiza el estado de un pago (ej: pendiente → pagado)."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": []
+}

@@ -16,9 +16,8 @@ import { useFormValidation } from '../../../hooks/useFormValidation';
 import { validationMessages as vm } from '../../../lib/validationMessages';
 import { useRole } from '../../../hooks/useRole';
 import { can } from '../../../lib/permissions';
+import { FilterStatusToggle, FilterActivo } from '../../../components/ui/FilterStatusToggle';
 import { Student } from '../../../types';
-
-type FilterActivo = 'all' | 'true' | 'false';
 
 function StudentForm({ onSubmit, loading, initial }: {
   onSubmit: (data: any) => void;
@@ -212,9 +211,6 @@ export default function StudentsPage() {
     },
   ];
 
-  const filterBtnClass = (val: FilterActivo) =>
-    `px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${filterActivo === val ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`;
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -229,11 +225,12 @@ export default function StudentsPage() {
         )}
       </div>
 
-      <div className="flex items-center gap-1 bg-muted/40 rounded-lg p-1 w-fit border border-border">
-        <button className={filterBtnClass('all')} onClick={() => setFilterActivo('all')}>Todos</button>
-        <button className={filterBtnClass('true')} onClick={() => setFilterActivo('true')}>Activos</button>
-        <button className={filterBtnClass('false')} onClick={() => setFilterActivo('false')}>Inactivos</button>
-      </div>
+      <FilterStatusToggle
+        value={filterActivo}
+        onChange={setFilterActivo}
+        hasInactiveRecords={filterActivo === 'false' && students.length > 0}
+        onRestore={() => setFilterActivo('all')}
+      />
 
       <DataTable columns={columns} data={students} loading={isLoading} emptyMessage="No hay alumnos registrados" />
 
