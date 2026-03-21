@@ -12,10 +12,13 @@ import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Spinner } from '../../../components/ui/Spinner';
+import { useRole } from '../../../hooks/useRole';
+import { can } from '../../../lib/permissions';
 import { Attendance, Student } from '../../../types';
 import { cn } from '../../../lib/utils';
 
 export default function AttendancePage() {
+  const role = useRole();
   const qc = useQueryClient();
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
   const [modal, setModal] = useState(false);
@@ -69,9 +72,11 @@ export default function AttendancePage() {
           <h2 className="text-2xl font-bold tracking-tight">Asistencias</h2>
           <p className="text-sm text-muted-foreground">Control de asistencias por alumno</p>
         </div>
-        <Button onClick={() => setModal(true)} size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />Registrar asistencia
-        </Button>
+        {role && can.createAttendance(role) && (
+          <Button onClick={() => setModal(true)} size="sm">
+            <Plus className="h-4 w-4 mr-1.5" />Registrar asistencia
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-lg border border-border p-4">

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { authService } from '../../../services/auth.service';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
@@ -8,7 +8,11 @@ import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Spinner } from '../../../components/ui/Spinner';
+import { FieldError } from '../../../components/ui/FieldError';
 import { Camera, Save, KeyRound, User } from 'lucide-react';
+import { PasswordStrengthInput, isPasswordValid } from '../../../components/ui/PasswordStrengthInput';
+import { useFormValidation } from '../../../hooks/useFormValidation';
+import { validationMessages as vm } from '../../../lib/validationMessages';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010/api').replace('/api', '');
 
@@ -20,24 +24,59 @@ function getAvatarUrl(fotoUrl: string | null | undefined) {
 
 export default function ProfilePage() {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [user, setUser] = useState<any>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | undefined>();
+  // Initialize synchronously from localStorage to avoid an empty-form flash
+  const [user, setUser] = useState<any>(() =>
+    typeof window !== 'undefined' ? authService.getUser() : null,
+  );
+  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(() =>
+    typeof window !== 'undefined' ? getAvatarUrl(authService.getUser()?.foto_url) : undefined,
+  );
   const [uploadLoading, setUploadLoading] = useState(false);
-
-  const [infoForm, setInfoForm] = useState({ nombre: '', email: '' });
   const [infoLoading, setInfoLoading] = useState(false);
-
-  const [passForm, setPassForm] = useState({ password: '', confirm: '' });
   const [passLoading, setPassLoading] = useState(false);
 
-  useEffect(() => {
-    const u = authService.getUser();
-    if (u) {
-      setUser(u);
-      setInfoForm({ nombre: u.nombre || '', email: u.email || '' });
-      setAvatarPreview(getAvatarUrl(u.foto_url));
-    }
-  }, []);
+  // --- Info form ---
+  const {
+    values: infoValues,
+    handleChange: infoChange,
+    handleBlur: infoBlur,
+    validate: infoValidate,
+    fieldError: infoFieldError,
+    submitDisabled: infoSubmitDisabled,
+  } = useFormValidation(
+    { nombre: user?.nombre || '', email: user?.email || '' },
+    {
+      nombre: [{ type: 'required' }],
+      email: [{ type: 'required' }, { type: 'email' }],
+    },
+  );
+
+  // --- Password form ---
+  // pwRef keeps the current password value accessible inside the confirm rule closure
+  const pwRef = useRef('');
+  const {
+    values: passValues,
+    handleChange: passChange,
+    handleBlur: passBlur,
+    validate: passValidate,
+    fieldError: passFieldError,
+    submitDisabled: passSubmitDisabled,
+    reset: passReset,
+  } = useFormValidation(
+    { password: '', confirm: '' },
+    {
+      password: [
+        { type: 'required' },
+        { type: 'custom', validate: (v) => (isPasswordValid(v) ? undefined : vm.passwordWeak) },
+      ],
+      confirm: [
+        { type: 'required' },
+        { type: 'custom', validate: (v) => (v !== pwRef.current ? vm.passwordMismatch : undefined) },
+      ],
+    },
+  );
+  // Keep pwRef in sync with the latest password value
+  pwRef.current = passValues.password;
 
   const initials = user?.nombre
     ? user.nombre.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase()
@@ -67,10 +106,11 @@ export default function ProfilePage() {
 
   const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!infoValidate()) return;
     setInfoLoading(true);
     const tid = toast.loading('Guardando cambios...');
     try {
-      const updated = await authService.updateMe({ nombre: infoForm.nombre, email: infoForm.email });
+      const updated = await authService.updateMe({ nombre: infoValues.nombre, email: infoValues.email });
       const updatedUser = { ...user, nombre: updated.nombre, email: updated.email };
       setUser(updatedUser);
       authService.saveUser(updatedUser);
@@ -84,19 +124,12 @@ export default function ProfilePage() {
 
   const handlePassSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passForm.password !== passForm.confirm) {
-      toast.error('Las contraseñas no coinciden');
-      return;
-    }
-    if (passForm.password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
+    if (!passValidate()) return;
     setPassLoading(true);
     const tid = toast.loading('Actualizando contraseña...');
     try {
-      await authService.updateMe({ password: passForm.password });
-      setPassForm({ password: '', confirm: '' });
+      await authService.updateMe({ password: passValues.password });
+      passReset();
       toast.success('Contraseña actualizada correctamente', { id: tid });
     } catch {
       toast.error('No se pudo actualizar la contraseña', { id: tid });
@@ -158,13 +191,28 @@ export default function ProfilePage() {
           <form onSubmit={handleInfoSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="nombre">Nombre completo</Label>
-              <Input id="nombre" value={infoForm.nombre} onChange={(e) => setInfoForm((f) => ({ ...f, nombre: e.target.value }))} required />
+              <Input
+                id="nombre"
+                value={infoValues.nombre}
+                onChange={(e) => infoChange('nombre', e.target.value)}
+                onBlur={() => infoBlur('nombre')}
+                aria-invalid={!!infoFieldError('nombre')}
+              />
+              <FieldError message={infoFieldError('nombre')} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="email">Correo electrónico</Label>
-              <Input id="email" type="email" value={infoForm.email} onChange={(e) => setInfoForm((f) => ({ ...f, email: e.target.value }))} required />
+              <Input
+                id="email"
+                type="email"
+                value={infoValues.email}
+                onChange={(e) => infoChange('email', e.target.value)}
+                onBlur={() => infoBlur('email')}
+                aria-invalid={!!infoFieldError('email')}
+              />
+              <FieldError message={infoFieldError('email')} />
             </div>
-            <Button type="submit" disabled={infoLoading} className="gap-2">
+            <Button type="submit" disabled={infoLoading || infoSubmitDisabled} className="gap-2">
               {infoLoading ? <Spinner size="xs" /> : <Save className="h-4 w-4" />}
               {infoLoading ? 'Guardando...' : 'Guardar cambios'}
             </Button>
@@ -183,13 +231,28 @@ export default function ProfilePage() {
           <form onSubmit={handlePassSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="password">Nueva contraseña</Label>
-              <Input id="password" type="password" placeholder="Mínimo 6 caracteres" value={passForm.password} onChange={(e) => setPassForm((f) => ({ ...f, password: e.target.value }))} required />
+              <PasswordStrengthInput
+                id="password"
+                value={passValues.password}
+                onChange={(v) => passChange('password', v)}
+                required
+              />
+              <FieldError message={passFieldError('password')} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="confirm">Confirmar contraseña</Label>
-              <Input id="confirm" type="password" placeholder="Repite la contraseña" value={passForm.confirm} onChange={(e) => setPassForm((f) => ({ ...f, confirm: e.target.value }))} required />
+              <Input
+                id="confirm"
+                type="password"
+                placeholder="Repite la contraseña"
+                value={passValues.confirm}
+                onChange={(e) => passChange('confirm', e.target.value)}
+                onBlur={() => passBlur('confirm')}
+                aria-invalid={!!passFieldError('confirm')}
+              />
+              <FieldError message={passFieldError('confirm')} />
             </div>
-            <Button type="submit" disabled={passLoading} className="gap-2">
+            <Button type="submit" disabled={passLoading || passSubmitDisabled} className="gap-2">
               {passLoading ? <Spinner size="xs" /> : <KeyRound className="h-4 w-4" />}
               {passLoading ? 'Actualizando...' : 'Actualizar contraseña'}
             </Button>

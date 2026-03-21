@@ -25,8 +25,10 @@ import {
   UserCircle,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { canAccessNav } from '../../lib/permissions';
+import type { Role } from '../../lib/permissions';
 
-const navItems = [
+const allNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/students', label: 'Alumnos', icon: GraduationCap },
   { href: '/teachers', label: 'Maestros', icon: BookUser },
@@ -42,7 +44,7 @@ function NavLink({
   collapsed,
   onClick,
 }: {
-  item: (typeof navItems)[0];
+  item: (typeof allNavItems)[0];
   active: boolean;
   collapsed: boolean;
   onClick?: () => void;
@@ -107,6 +109,9 @@ function SidebarContent({
   onNav?: () => void;
   onLogout: () => void;
 }) {
+  const navItems = allNavItems.filter((item) =>
+    canAccessNav(item.href, user?.role as Role)
+  );
   const initials = user?.nombre
     ? user.nombre
         .split(' ')
@@ -124,9 +129,6 @@ function SidebarContent({
       <div className={cn('flex h-14 items-center border-b border-sidebar-border', collapsed ? 'justify-center px-2' : 'justify-between px-4')}>
         {!collapsed && (
           <div className="flex items-center gap-2 min-w-0">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-sidebar-primary">
-              <GraduationCap className="h-4 w-4 text-sidebar-primary-foreground" />
-            </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold leading-none truncate">EduCore ERP</p>
               <p className="text-xs text-muted-foreground leading-none mt-0.5">Sistema Escolar</p>
@@ -259,7 +261,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const currentLabel =
     pathname === '/profile'
       ? 'Mi Perfil'
-      : (navItems.find((n) => pathname.startsWith(n.href))?.label ?? 'Dashboard');
+      : (allNavItems.find((n) => pathname.startsWith(n.href))?.label ?? 'Dashboard');
 
   const sidebarWidth = collapsed ? 'lg:w-14' : 'lg:w-60';
   const mainPadding = collapsed ? 'lg:pl-14' : 'lg:pl-60';

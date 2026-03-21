@@ -1,4 +1,6 @@
 import { Label } from './label';
+import { FieldError } from './FieldError';
+import { cn } from '../../lib/utils';
 
 interface FormFieldProps {
   label: string;
@@ -10,8 +12,10 @@ export function FormField({ label, error, children }: FormFieldProps) {
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
-      {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      <div className={cn(error && '[&_input]:border-destructive [&_input]:focus-visible:ring-destructive/20')}>
+        {children}
+      </div>
+      <FieldError message={error} />
     </div>
   );
 }
