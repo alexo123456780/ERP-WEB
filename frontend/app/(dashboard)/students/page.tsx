@@ -1,10 +1,13 @@
 'use client';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { studentsService } from '../../../services/students.service';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { FormField, inputClass } from '../../../components/ui/FormField';
+import { Button } from '../../../components/ui/button';
+import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { Student } from '../../../types';
 
 function StudentForm({ onSubmit, loading, error, initial }: {
@@ -27,29 +30,31 @@ function StudentForm({ onSubmit, loading, error, initial }: {
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-4">
       <FormField label="Nombre completo">
-        <input className={inputClass} value={form.nombre} onChange={(e) => set('nombre', e.target.value)} required />
+        <input className={inputClass} value={form.nombre} onChange={(e) => set('nombre', e.target.value)} required placeholder="Juan Perez Garcia" />
       </FormField>
-      <FormField label="Email">
-        <input type="email" className={inputClass} value={form.email} onChange={(e) => set('email', e.target.value)} required />
+      <FormField label="Correo electrónico">
+        <input type="email" className={inputClass} value={form.email} onChange={(e) => set('email', e.target.value)} required placeholder="juan@escuela.com" />
       </FormField>
       {!initial && (
         <FormField label="Contraseña">
-          <input type="password" className={inputClass} value={form.password} onChange={(e) => set('password', e.target.value)} required minLength={6} />
+          <input type="password" className={inputClass} value={form.password} onChange={(e) => set('password', e.target.value)} required minLength={6} placeholder="Mínimo 6 caracteres" />
         </FormField>
       )}
       <FormField label="CURP">
-        <input className={inputClass} value={form.curp} onChange={(e) => set('curp', e.target.value.toUpperCase())} required maxLength={18} minLength={18} />
+        <input className={inputClass} value={form.curp} onChange={(e) => set('curp', e.target.value.toUpperCase())} required maxLength={18} minLength={18} placeholder="18 caracteres" />
       </FormField>
-      <FormField label="Fecha de nacimiento">
-        <input type="date" className={inputClass} value={form.fecha_nacimiento ?? ''} onChange={(e) => set('fecha_nacimiento', e.target.value)} />
-      </FormField>
-      <FormField label="Teléfono">
-        <input className={inputClass} value={form.telefono ?? ''} onChange={(e) => set('telefono', e.target.value)} />
-      </FormField>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-      <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
+      <div className="grid grid-cols-2 gap-4">
+        <FormField label="Fecha de nacimiento">
+          <input type="date" className={inputClass} value={form.fecha_nacimiento ?? ''} onChange={(e) => set('fecha_nacimiento', e.target.value)} />
+        </FormField>
+        <FormField label="Teléfono">
+          <input className={inputClass} value={form.telefono ?? ''} onChange={(e) => set('telefono', e.target.value)} placeholder="10 dígitos" />
+        </FormField>
+      </div>
+      {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+      <Button type="submit" disabled={loading} className="w-full">
         {loading ? 'Guardando...' : 'Guardar'}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -79,18 +84,26 @@ export default function StudentsPage() {
   });
 
   const columns = [
-    { key: 'nombre', header: 'Nombre', render: (r: Student) => r.user.nombre },
-    { key: 'email', header: 'Email', render: (r: Student) => r.user.email },
-    { key: 'curp', header: 'CURP' },
-    { key: 'telefono', header: 'Teléfono', render: (r: Student) => r.telefono ?? '—' },
+    { key: 'nombre', header: 'Nombre', render: (r: Student) => <span className="font-medium">{r.user.nombre}</span> },
+    { key: 'email', header: 'Correo', render: (r: Student) => <span className="text-muted-foreground">{r.user.email}</span> },
+    { key: 'curp', header: 'CURP', render: (r: Student) => <span className="font-mono text-xs">{r.curp}</span> },
+    { key: 'telefono', header: 'Teléfono', render: (r: Student) => r.telefono ?? <span className="text-muted-foreground">—</span> },
     {
-      key: 'actions', header: 'Acciones',
+      key: 'actions', header: '',
       render: (r: Student) => (
-        <div className="flex gap-2">
-          <button onClick={() => { setMutError(''); setModal({ type: 'edit', student: r }); }}
-            className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100">Editar</button>
-          <button onClick={() => { if (confirm('¿Eliminar alumno?')) deleteMut.mutate(r.id); }}
-            className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded hover:bg-red-100">Eliminar</button>
+        <div className="flex justify-end gap-1">
+          <Button
+            variant="ghost" size="icon" className="h-8 w-8"
+            onClick={() => { setMutError(''); setModal({ type: 'edit', student: r }); }}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => { if (confirm('¿Eliminar alumno?')) deleteMut.mutate(r.id); }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
       ),
     },
@@ -98,19 +111,24 @@ export default function StudentsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800">Alumnos</h2>
-        <button onClick={() => { setMutError(''); setModal({ type: 'create' }); }}
-          className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700">
-          + Nuevo alumno
-        </button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Alumnos</h2>
+          <p className="text-sm text-muted-foreground">{students.length} alumno{students.length !== 1 ? 's' : ''} registrado{students.length !== 1 ? 's' : ''}</p>
+        </div>
+        <Button onClick={() => { setMutError(''); setModal({ type: 'create' }); }} size="sm">
+          <Plus className="h-4 w-4 mr-1.5" />
+          Nuevo alumno
+        </Button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm">
-        <DataTable columns={columns} data={students} loading={isLoading} emptyMessage="No hay alumnos registrados" />
-      </div>
+      <DataTable columns={columns} data={students} loading={isLoading} emptyMessage="No hay alumnos registrados" />
 
-      <Modal open={!!modal} onClose={() => setModal(null)} title={modal?.type === 'create' ? 'Nuevo alumno' : 'Editar alumno'}>
+      <Modal
+        open={!!modal}
+        onClose={() => setModal(null)}
+        title={modal?.type === 'create' ? 'Nuevo alumno' : 'Editar alumno'}
+      >
         <StudentForm
           initial={modal?.student}
           loading={createMut.isPending || updateMut.isPending}

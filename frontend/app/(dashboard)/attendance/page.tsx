@@ -1,12 +1,18 @@
 'use client';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, AlertTriangle } from 'lucide-react';
 import { attendanceService } from '../../../services/attendance.service';
 import { studentsService } from '../../../services/students.service';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { FormField, inputClass } from '../../../components/ui/FormField';
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
+import { Card, CardContent } from '../../../components/ui/card';
+import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { Attendance, Student } from '../../../types';
+import { cn } from '../../../lib/utils';
 
 export default function AttendancePage() {
   const qc = useQueryClient();
@@ -29,55 +35,87 @@ export default function AttendancePage() {
     onError: (e: any) => setMutError(e.response?.data?.message || 'Error'),
   });
 
+  const resumen = attendanceData?.resumen;
+
   const columns = [
-    { key: 'subject', header: 'Materia', render: (r: Attendance) => r.enrollment?.subject?.nombre ?? '—' },
+    { key: 'subject', header: 'Materia', render: (r: Attendance) => <span className="font-medium">{r.enrollment?.subject?.nombre ?? '—'}</span> },
     { key: 'fecha', header: 'Fecha' },
     {
-      key: 'presente', header: 'Asistencia', render: (r: Attendance) => (
-        <span className={r.presente ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-          {r.presente ? '✓ Presente' : '✗ Ausente'}
-        </span>
+      key: 'presente', header: 'Asistencia',
+      render: (r: Attendance) => (
+        <Badge className={r.presente
+          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0'
+          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0'
+        }>
+          {r.presente ? 'Presente' : 'Ausente'}
+        </Badge>
       )
     },
-    { key: 'justificado', header: 'Justificado', render: (r: Attendance) => r.justificado ? 'Sí' : 'No' },
+    {
+      key: 'justificado', header: 'Justificado',
+      render: (r: Attendance) => r.justificado
+        ? <Badge variant="outline">Justificado</Badge>
+        : <span className="text-muted-foreground text-sm">No</span>
+    },
   ];
-
-  const resumen = attendanceData?.resumen;
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800">Asistencias</h2>
-        <button onClick={() => { setMutError(''); setModal(true); }}
-          className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700">+ Registrar asistencia</button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Asistencias</h2>
+          <p className="text-sm text-muted-foreground">Control de asistencias por alumno</p>
+        </div>
+        <Button onClick={() => { setMutError(''); setModal(true); }} size="sm">
+          <Plus className="h-4 w-4 mr-1.5" />
+          Registrar asistencia
+        </Button>
       </div>
 
-      <div className="bg-white rounded-xl border p-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Ver asistencias por alumno</label>
-        <select className={inputClass} value={selectedStudent ?? ''} onChange={(e) => setSelectedStudent(e.target.value ? Number(e.target.value) : null)}>
-          <option value="">Seleccionar alumno</option>
-          {students.map((s: Student) => <option key={s.id} value={s.id}>{s.user.nombre} — {s.curp}</option>)}
-        </select>
+      <div className="bg-card rounded-lg border border-border p-4">
+        <FormField label="Seleccionar alumno">
+          <select className={inputClass} value={selectedStudent ?? ''} onChange={(e) => setSelectedStudent(e.target.value ? Number(e.target.value) : null)}>
+            <option value="">Buscar por alumno...</option>
+            {students.map((s: Student) => <option key={s.id} value={s.id}>{s.user.nombre} — {s.curp}</option>)}
+          </select>
+        </FormField>
       </div>
 
       {resumen && (
-        <div className={`rounded-xl p-4 border text-sm ${resumen.alerta ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-          <div className="flex gap-6 flex-wrap">
-            <span><strong>Total:</strong> {resumen.total}</span>
-            <span className="text-green-700"><strong>Presentes:</strong> {resumen.presentes}</span>
-            <span className="text-red-700"><strong>Ausentes:</strong> {resumen.ausentes}</span>
-            <span className={resumen.alerta ? 'text-red-700 font-bold' : 'text-green-700 font-bold'}>
-              <strong>% Asistencia:</strong> {resumen.porcentaje_asistencia}%
-              {resumen.alerta && ' ⚠️ Bajo porcentaje'}
-            </span>
-          </div>
-        </div>
+        <Card className={cn(resumen.alerta && 'border-destructive/50 bg-destructive/5')}>
+          <CardContent className="p-4">
+            {resumen.alerta && (
+              <div className="flex items-center gap-2 text-destructive mb-3">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm font-medium">Porcentaje de asistencia bajo</span>
+              </div>
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold">{resumen.total}</p>
+                <p className="text-xs text-muted-foreground">Total clases</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{resumen.presentes}</p>
+                <p className="text-xs text-muted-foreground">Presentes</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{resumen.ausentes}</p>
+                <p className="text-xs text-muted-foreground">Ausentes</p>
+              </div>
+              <div className="text-center">
+                <p className={cn('text-2xl font-bold', resumen.alerta ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
+                  {resumen.porcentaje_asistencia}%
+                </p>
+                <p className="text-xs text-muted-foreground">Asistencia</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {selectedStudent && (
-        <div className="bg-white rounded-xl shadow-sm">
-          <DataTable columns={columns} data={attendanceData?.records ?? []} loading={isLoading} emptyMessage="Sin registros de asistencia" />
-        </div>
+        <DataTable columns={columns} data={attendanceData?.records ?? []} loading={isLoading} emptyMessage="Sin registros de asistencia" />
       )}
 
       <Modal open={modal} onClose={() => setModal(false)} title="Registrar asistencia">
@@ -86,23 +124,35 @@ export default function AttendancePage() {
           createMut.mutate({ enrollment_id: Number(form.enrollment_id), fecha: form.fecha, presente: form.presente, justificado: form.justificado });
         }} className="space-y-4">
           <FormField label="ID de inscripción (enrollment_id)">
-            <input type="number" className={inputClass} value={form.enrollment_id} onChange={(e) => setForm((f) => ({ ...f, enrollment_id: e.target.value }))} required min={1} />
+            <input type="number" className={inputClass} value={form.enrollment_id} onChange={(e) => setForm((f) => ({ ...f, enrollment_id: e.target.value }))} required min={1} placeholder="ID numérico" />
           </FormField>
           <FormField label="Fecha">
             <input type="date" className={inputClass} value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} required />
           </FormField>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" checked={form.presente} onChange={(e) => setForm((f) => ({ ...f, presente: e.target.checked }))} />
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 text-sm cursor-pointer font-medium">
+              <input
+                type="checkbox"
+                checked={form.presente}
+                onChange={(e) => setForm((f) => ({ ...f, presente: e.target.checked }))}
+                className="h-4 w-4 rounded border-input accent-primary"
+              />
               Presente
             </label>
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" checked={form.justificado} onChange={(e) => setForm((f) => ({ ...f, justificado: e.target.checked }))} />
+            <label className="flex items-center gap-2 text-sm cursor-pointer font-medium">
+              <input
+                type="checkbox"
+                checked={form.justificado}
+                onChange={(e) => setForm((f) => ({ ...f, justificado: e.target.checked }))}
+                className="h-4 w-4 rounded border-input accent-primary"
+              />
               Justificado
             </label>
           </div>
-          {mutError && <p className="text-red-500 text-sm">{mutError}</p>}
-          <button type="submit" disabled={createMut.isPending} className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">Registrar</button>
+          {mutError && <Alert variant="destructive"><AlertDescription>{mutError}</AlertDescription></Alert>}
+          <Button type="submit" disabled={createMut.isPending} className="w-full">
+            {createMut.isPending ? 'Registrando...' : 'Registrar asistencia'}
+          </Button>
         </form>
       </Modal>
     </div>

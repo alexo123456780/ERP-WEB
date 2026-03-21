@@ -1,6 +1,12 @@
 'use client';
 import { useState } from 'react';
+import { GraduationCap } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Alert, AlertDescription } from '../../../components/ui/alert';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -23,49 +29,61 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-center mb-2 text-blue-700">EduCore ERP</h1>
-        <p className="text-center text-gray-500 mb-6 text-sm">Sistema de gestión escolar</p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="admin@escuela.com"
-            />
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
+            <GraduationCap className="h-6 w-6 text-primary-foreground" />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••"
-            />
-          </div>
+          <h1 className="text-2xl font-bold tracking-tight">EduCore ERP</h1>
+          <p className="text-sm text-muted-foreground">Sistema de gestión escolar</p>
+        </div>
 
-          {error && (
-            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-200">
-              {error}
-            </div>
-          )}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Iniciar sesión</CardTitle>
+            <CardDescription>Ingresa tus credenciales para continuar</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Correo electrónico</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="admin@escuela.com"
+                  autoComplete="email"
+                />
+              </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
-          </button>
-        </form>
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

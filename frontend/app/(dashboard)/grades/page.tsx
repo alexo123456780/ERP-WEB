@@ -1,11 +1,16 @@
 'use client';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, TrendingUp } from 'lucide-react';
 import { gradesService } from '../../../services/grades.service';
 import { studentsService } from '../../../services/students.service';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { FormField, inputClass } from '../../../components/ui/FormField';
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
+import { Card, CardContent } from '../../../components/ui/card';
+import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { Grade, Student } from '../../../types';
 
 export default function GradesPage() {
@@ -40,41 +45,70 @@ export default function GradesPage() {
   });
 
   const columns = [
-    { key: 'subject', header: 'Materia', render: (r: Grade) => r.enrollment?.subject?.nombre ?? '—' },
-    { key: 'ciclo', header: 'Ciclo', render: (r: Grade) => r.enrollment?.ciclo ?? '—' },
-    { key: 'parcial', header: 'Parcial' },
-    { key: 'calificacion', header: 'Calificación', render: (r: Grade) => <span className={Number(r.calificacion) >= 60 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>{r.calificacion}</span> },
-    { key: 'fecha', header: 'Fecha' },
+    { key: 'subject', header: 'Materia', render: (r: Grade) => <span className="font-medium">{r.enrollment?.subject?.nombre ?? '—'}</span> },
+    { key: 'ciclo', header: 'Ciclo', render: (r: Grade) => <Badge variant="outline">{r.enrollment?.ciclo ?? '—'}</Badge> },
+    { key: 'parcial', header: 'Parcial', render: (r: Grade) => `Parcial ${r.parcial}` },
+    {
+      key: 'calificacion', header: 'Calificación',
+      render: (r: Grade) => {
+        const val = Number(r.calificacion);
+        return (
+          <Badge className={val >= 60
+            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0'
+            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0'
+          }>
+            {r.calificacion}
+          </Badge>
+        );
+      }
+    },
+    { key: 'fecha', header: 'Fecha', render: (r: Grade) => r.fecha ?? <span className="text-muted-foreground">—</span> },
   ];
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800">Calificaciones</h2>
-        <button onClick={() => { setMutError(''); setModal(true); }}
-          className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700">+ Registrar calificación</button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Calificaciones</h2>
+          <p className="text-sm text-muted-foreground">Consulta y registra calificaciones por alumno</p>
+        </div>
+        <Button onClick={() => { setMutError(''); setModal(true); }} size="sm">
+          <Plus className="h-4 w-4 mr-1.5" />
+          Registrar calificación
+        </Button>
       </div>
 
-      <div className="bg-white rounded-xl border p-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Ver calificaciones por alumno</label>
-        <select className={inputClass} value={selectedStudent ?? ''} onChange={(e) => setSelectedStudent(e.target.value ? Number(e.target.value) : null)}>
-          <option value="">Seleccionar alumno</option>
-          {students.map((s: Student) => <option key={s.id} value={s.id}>{s.user.nombre} — {s.curp}</option>)}
-        </select>
+      <div className="bg-card rounded-lg border border-border p-4">
+        <FormField label="Seleccionar alumno">
+          <select className={inputClass} value={selectedStudent ?? ''} onChange={(e) => setSelectedStudent(e.target.value ? Number(e.target.value) : null)}>
+            <option value="">Buscar por alumno...</option>
+            {students.map((s: Student) => <option key={s.id} value={s.id}>{s.user.nombre} — {s.curp}</option>)}
+          </select>
+        </FormField>
       </div>
 
       {selectedStudent && avg && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm">
-          <span className="font-medium text-blue-700">Promedio general: </span>
-          <span className="text-blue-800 text-lg font-bold">{avg.average}</span>
-          <span className="text-blue-500 ml-2">({avg.total} calificaciones)</span>
-        </div>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <TrendingUp className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Promedio general</p>
+                <p className="text-2xl font-bold">{avg.average}</p>
+              </div>
+              <div className="ml-auto text-right">
+                <p className="text-sm text-muted-foreground">Total de calificaciones</p>
+                <p className="text-lg font-semibold">{avg.total}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {selectedStudent && (
-        <div className="bg-white rounded-xl shadow-sm">
-          <DataTable columns={columns} data={grades} loading={isLoading} emptyMessage="Sin calificaciones" />
-        </div>
+        <DataTable columns={columns} data={grades} loading={isLoading} emptyMessage="Sin calificaciones registradas" />
       )}
 
       <Modal open={modal} onClose={() => setModal(false)} title="Registrar calificación">
@@ -88,19 +122,23 @@ export default function GradesPage() {
           });
         }} className="space-y-4">
           <FormField label="ID de inscripción (enrollment_id)">
-            <input type="number" className={inputClass} value={form.enrollment_id} onChange={(e) => setForm((f) => ({ ...f, enrollment_id: e.target.value }))} required min={1} />
+            <input type="number" className={inputClass} value={form.enrollment_id} onChange={(e) => setForm((f) => ({ ...f, enrollment_id: e.target.value }))} required min={1} placeholder="ID numérico" />
           </FormField>
-          <FormField label="Parcial">
-            <input type="number" className={inputClass} value={form.parcial} onChange={(e) => setForm((f) => ({ ...f, parcial: e.target.value }))} required min={1} max={10} />
-          </FormField>
-          <FormField label="Calificación (0-100)">
-            <input type="number" className={inputClass} value={form.calificacion} onChange={(e) => setForm((f) => ({ ...f, calificacion: e.target.value }))} required min={0} max={100} step={0.01} />
-          </FormField>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Parcial">
+              <input type="number" className={inputClass} value={form.parcial} onChange={(e) => setForm((f) => ({ ...f, parcial: e.target.value }))} required min={1} max={10} />
+            </FormField>
+            <FormField label="Calificación (0-100)">
+              <input type="number" className={inputClass} value={form.calificacion} onChange={(e) => setForm((f) => ({ ...f, calificacion: e.target.value }))} required min={0} max={100} step={0.01} />
+            </FormField>
+          </div>
           <FormField label="Fecha">
             <input type="date" className={inputClass} value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} />
           </FormField>
-          {mutError && <p className="text-red-500 text-sm">{mutError}</p>}
-          <button type="submit" disabled={createMut.isPending} className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">Registrar</button>
+          {mutError && <Alert variant="destructive"><AlertDescription>{mutError}</AlertDescription></Alert>}
+          <Button type="submit" disabled={createMut.isPending} className="w-full">
+            {createMut.isPending ? 'Registrando...' : 'Registrar calificación'}
+          </Button>
         </form>
       </Modal>
     </div>

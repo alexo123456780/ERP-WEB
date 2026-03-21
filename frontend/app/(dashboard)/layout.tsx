@@ -2,23 +2,160 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 import { authService } from '../../services/auth.service';
+import { Button } from '../../components/ui/button';
+import { Separator } from '../../components/ui/separator';
+import { Avatar, AvatarFallback } from '../../components/ui/avatar';
+import { Sheet, SheetContent, SheetTrigger } from '../../components/ui/sheet';
+import {
+  LayoutDashboard,
+  GraduationCap,
+  BookUser,
+  BookOpen,
+  ClipboardList,
+  CalendarCheck,
+  CreditCard,
+  LogOut,
+  Menu,
+  Moon,
+  Sun,
+} from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { href: '/students', label: 'Alumnos', icon: '🎓' },
-  { href: '/teachers', label: 'Maestros', icon: '👨‍🏫' },
-  { href: '/subjects', label: 'Materias', icon: '📚' },
-  { href: '/grades', label: 'Calificaciones', icon: '📝' },
-  { href: '/attendance', label: 'Asistencias', icon: '✅' },
-  { href: '/payments', label: 'Pagos', icon: '💰' },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/students', label: 'Alumnos', icon: GraduationCap },
+  { href: '/teachers', label: 'Maestros', icon: BookUser },
+  { href: '/subjects', label: 'Materias', icon: BookOpen },
+  { href: '/grades', label: 'Calificaciones', icon: ClipboardList },
+  { href: '/attendance', label: 'Asistencias', icon: CalendarCheck },
+  { href: '/payments', label: 'Pagos', icon: CreditCard },
 ];
+
+function NavLink({
+  item,
+  active,
+  onClick,
+}: {
+  item: (typeof navItems)[0];
+  active: boolean;
+  onClick?: () => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      className={cn(
+        'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+        active
+          ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+          : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+      )}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      {item.label}
+    </Link>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return <div className="h-9 w-9" />;
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      className="h-9 w-9"
+      aria-label="Cambiar tema"
+    >
+      {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </Button>
+  );
+}
+
+function SidebarContent({
+  pathname,
+  user,
+  onNav,
+  onLogout,
+}: {
+  pathname: string;
+  user: any;
+  onNav?: () => void;
+  onLogout: () => void;
+}) {
+  const initials = user?.nombre
+    ? user.nombre
+        .split(' ')
+        .slice(0, 2)
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+    : 'U';
+
+  return (
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+      <div className="flex h-14 items-center px-4 border-b border-sidebar-border">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sidebar-primary">
+            <GraduationCap className="h-4 w-4 text-sidebar-primary-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold leading-none">EduCore ERP</p>
+            <p className="text-xs text-muted-foreground leading-none mt-0.5">Sistema Escolar</p>
+          </div>
+        </div>
+      </div>
+
+      <nav className="flex-1 space-y-0.5 p-3 overflow-y-auto">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.href}
+            item={item}
+            active={pathname === item.href || pathname.startsWith(item.href + '/')}
+            onClick={onNav}
+          />
+        ))}
+      </nav>
+
+      <Separator className="bg-sidebar-border" />
+
+      <div className="p-3 space-y-2">
+        <div className="flex items-center gap-3 px-3 py-2">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 overflow-hidden">
+            <p className="text-sm font-medium truncate leading-none">{user?.nombre}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 capitalize">{user?.role}</p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          onClick={onLogout}
+        >
+          <LogOut className="h-4 w-4" />
+          Cerrar sesión
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     if (!authService.isAuthenticated()) {
@@ -33,67 +170,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/login');
   };
 
-  if (!user) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-sm text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentLabel = navItems.find((n) => pathname.startsWith(n.href))?.label ?? 'Dashboard';
 
   return (
-    <div className="min-h-screen flex bg-gray-100">
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-blue-800 text-white flex flex-col transform transition-transform duration-200
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-auto`}>
-        <div className="p-4 border-b border-blue-700">
-          <h1 className="text-xl font-bold">EduCore ERP</h1>
-          <p className="text-blue-300 text-xs mt-1">Sistema Escolar</p>
-        </div>
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors
-                ${pathname === item.href || pathname.startsWith(item.href + '/')
-                  ? 'bg-blue-600 text-white'
-                  : 'text-blue-100 hover:bg-blue-700'}`}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="p-4 border-t border-blue-700">
-          <div className="text-sm text-blue-200 mb-2">{user.nombre}</div>
-          <div className="text-xs text-blue-400 mb-3 capitalize">{user.role}</div>
-          <button
-            onClick={logout}
-            className="w-full text-sm bg-blue-700 hover:bg-blue-600 px-3 py-2 rounded-lg transition-colors"
-          >
-            Cerrar sesión
-          </button>
-        </div>
+    <div className="min-h-screen flex bg-background">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex lg:flex-col lg:w-60 lg:fixed lg:inset-y-0 lg:border-r lg:border-sidebar-border">
+        <SidebarContent pathname={pathname} user={user} onLogout={logout} />
       </aside>
 
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Main area */}
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-60">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/95 backdrop-blur px-4 md:px-6">
+          {/* Mobile menu */}
+          <Sheet open={sheetOpen} onOpenChange={(o) => setSheetOpen(o)}>
+            <SheetTrigger
+              className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg border border-transparent hover:bg-muted transition-colors"
+              aria-label="Abrir menú"
+            >
+              <Menu className="h-5 w-5" />
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 w-60">
+              <SidebarContent
+                pathname={pathname}
+                user={user}
+                onNav={() => setSheetOpen(false)}
+                onLogout={logout}
+              />
+            </SheetContent>
+          </Sheet>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b px-4 py-3 flex items-center gap-4 lg:px-6">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-gray-600 hover:text-gray-800"
-          >
-            ☰
-          </button>
-          <span className="text-gray-800 font-medium text-sm capitalize">
-            {navItems.find((n) => pathname.startsWith(n.href))?.label ?? 'Dashboard'}
-          </span>
+          <div className="flex-1">
+            <h1 className="text-sm font-semibold text-foreground">{currentLabel}</h1>
+          </div>
+
+          <ThemeToggle />
         </header>
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">{children}</main>
+
+        <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
       </div>
     </div>
   );
