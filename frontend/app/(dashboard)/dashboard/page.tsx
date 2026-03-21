@@ -11,8 +11,8 @@ import { Skeleton } from '../../../components/ui/skeleton';
 import { Badge } from '../../../components/ui/badge';
 
 export default function DashboardPage() {
-  const { data: students, isLoading: loadingStudents } = useQuery({ queryKey: ['students'], queryFn: studentsService.getAll });
-  const { data: teachers, isLoading: loadingTeachers } = useQuery({ queryKey: ['teachers'], queryFn: teachersService.getAll });
+  const { data: students, isLoading: loadingStudents } = useQuery({ queryKey: ['students'], queryFn: () => studentsService.getAll() });
+  const { data: teachers, isLoading: loadingTeachers } = useQuery({ queryKey: ['teachers'], queryFn: () => teachersService.getAll() });
   const { data: subjects, isLoading: loadingSubjects } = useQuery({ queryKey: ['subjects'], queryFn: subjectsService.getAll });
   const { data: pending, isLoading: loadingPending } = useQuery({ queryKey: ['payments-pending'], queryFn: paymentsService.getPending });
 

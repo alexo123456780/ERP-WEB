@@ -27,6 +27,9 @@ export class UserEntity {
   @JoinColumn({ name: 'role_id' })
   role: RoleEntity;
 
+  @Column({ name: 'foto_url', type: 'varchar', length: 500, nullable: true, default: null })
+  foto_url: string | null;
+
   @Column({ name: 'activo', type: 'tinyint', default: 1 })
   activo: boolean;
 

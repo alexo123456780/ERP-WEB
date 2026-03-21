@@ -23,8 +23,31 @@ export const authService = {
     return user ? JSON.parse(user) : null;
   },
 
+  saveUser(user: AuthData['user']) {
+    localStorage.setItem('user', JSON.stringify(user));
+  },
+
   isAuthenticated() {
     if (typeof window === 'undefined') return false;
     return !!localStorage.getItem('token');
+  },
+
+  async getMe(): Promise<AuthData['user']> {
+    const res = await api.get<ApiResponse<AuthData['user']>>('/auth/me');
+    return res.data.data;
+  },
+
+  async updateMe(data: { nombre?: string; email?: string; password?: string }): Promise<AuthData['user']> {
+    const res = await api.patch<ApiResponse<AuthData['user']>>('/auth/me', data);
+    return res.data.data;
+  },
+
+  async uploadAvatar(file: File): Promise<{ foto_url: string }> {
+    const form = new FormData();
+    form.append('avatar', file);
+    const res = await api.post<ApiResponse<{ foto_url: string }>>('/auth/me/avatar', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data.data;
   },
 };

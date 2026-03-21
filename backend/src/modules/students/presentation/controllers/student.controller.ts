@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
@@ -41,8 +42,9 @@ export class StudentController {
 
   @Get()
   @Roles('admin', 'maestro')
-  async findAll() {
-    return this.getUC.findAll();
+  async findAll(@Query('activo') activo?: string) {
+    const filter = activo !== undefined ? activo === 'true' : undefined;
+    return this.getUC.findAll(filter);
   }
 
   @Get(':id')

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, TrendingUp } from 'lucide-react';
+import { toast } from 'sonner';
 import { gradesService } from '../../../services/grades.service';
 import { studentsService } from '../../../services/students.service';
 import { DataTable } from '../../../components/ui/DataTable';
@@ -10,17 +11,16 @@ import { FormField, inputClass } from '../../../components/ui/FormField';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardContent } from '../../../components/ui/card';
-import { Alert, AlertDescription } from '../../../components/ui/alert';
+import { Spinner } from '../../../components/ui/Spinner';
 import { Grade, Student } from '../../../types';
 
 export default function GradesPage() {
   const qc = useQueryClient();
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
   const [modal, setModal] = useState(false);
-  const [mutError, setMutError] = useState('');
   const [form, setForm] = useState({ enrollment_id: '', parcial: '1', calificacion: '', fecha: '' });
 
-  const { data: students = [] } = useQuery({ queryKey: ['students'], queryFn: studentsService.getAll });
+  const { data: students = [] } = useQuery({ queryKey: ['students'], queryFn: () => studentsService.getAll() });
 
   const { data: grades = [], isLoading } = useQuery({
     queryKey: ['grades', selectedStudent],
@@ -40,8 +40,10 @@ export default function GradesPage() {
       qc.invalidateQueries({ queryKey: ['grades'] });
       qc.invalidateQueries({ queryKey: ['grades-avg'] });
       setModal(false);
+      setForm({ enrollment_id: '', parcial: '1', calificacion: '', fecha: '' });
+      toast.success('Calificación registrada correctamente');
     },
-    onError: (e: any) => setMutError(e.response?.data?.message || 'Error'),
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Error al registrar calificación'),
   });
 
   const columns = [
@@ -72,9 +74,8 @@ export default function GradesPage() {
           <h2 className="text-2xl font-bold tracking-tight">Calificaciones</h2>
           <p className="text-sm text-muted-foreground">Consulta y registra calificaciones por alumno</p>
         </div>
-        <Button onClick={() => { setMutError(''); setModal(true); }} size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />
-          Registrar calificación
+        <Button onClick={() => setModal(true)} size="sm">
+          <Plus className="h-4 w-4 mr-1.5" />Registrar calificación
         </Button>
       </div>
 
@@ -113,7 +114,7 @@ export default function GradesPage() {
 
       <Modal open={modal} onClose={() => setModal(false)} title="Registrar calificación">
         <form onSubmit={(e) => {
-          e.preventDefault(); setMutError('');
+          e.preventDefault();
           createMut.mutate({
             enrollment_id: Number(form.enrollment_id),
             parcial: Number(form.parcial),
@@ -135,8 +136,8 @@ export default function GradesPage() {
           <FormField label="Fecha">
             <input type="date" className={inputClass} value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} />
           </FormField>
-          {mutError && <Alert variant="destructive"><AlertDescription>{mutError}</AlertDescription></Alert>}
-          <Button type="submit" disabled={createMut.isPending} className="w-full">
+          <Button type="submit" disabled={createMut.isPending} className="w-full gap-2">
+            {createMut.isPending && <Spinner size="xs" />}
             {createMut.isPending ? 'Registrando...' : 'Registrar calificación'}
           </Button>
         </form>

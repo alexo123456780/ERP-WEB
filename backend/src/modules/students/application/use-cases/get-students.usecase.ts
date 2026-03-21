@@ -10,8 +10,9 @@ export class GetStudentsUseCase {
     private studentRepo: Repository<StudentEntity>,
   ) {}
 
-  async findAll() {
-    return this.studentRepo.find({ relations: ['user', 'user.role'] });
+  async findAll(activo?: boolean) {
+    const where = activo !== undefined ? { user: { activo } } : {};
+    return this.studentRepo.find({ where, relations: ['user', 'user.role'] });
   }
 
   async findOne(id: number) {

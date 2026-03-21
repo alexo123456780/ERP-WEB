@@ -2,8 +2,9 @@ import api from './api';
 import { ApiResponse, Student } from '../types';
 
 export const studentsService = {
-  async getAll(): Promise<Student[]> {
-    const res = await api.get<ApiResponse<Student[]>>('/students');
+  async getAll(activo?: boolean): Promise<Student[]> {
+    const params = activo !== undefined ? { activo } : {};
+    const res = await api.get<ApiResponse<Student[]>>('/students', { params });
     return res.data.data;
   },
 

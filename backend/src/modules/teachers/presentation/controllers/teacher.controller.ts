@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   ParseIntPipe,
   UseGuards,
   NotFoundException,
@@ -39,8 +40,9 @@ export class TeacherController {
 
   @Get()
   @Roles('admin', 'maestro')
-  findAll() {
-    return this.teacherRepo.find({ relations: ['user', 'user.role'] });
+  findAll(@Query('activo') activo?: string) {
+    const where = activo !== undefined ? { user: { activo: activo === 'true' } } : {};
+    return this.teacherRepo.find({ where, relations: ['user', 'user.role'] });
   }
 
   @Get(':id')
@@ -89,10 +91,11 @@ export class TeacherController {
   @Delete(':id')
   @Roles('admin')
   async remove(@Param('id', ParseIntPipe) id: number) {
-    const teacher = await this.teacherRepo.findOne({ where: { id } });
+    const teacher = await this.teacherRepo.findOne({ where: { id }, relations: ['user'] });
     if (!teacher) throw new NotFoundException('Maestro no encontrado');
-    await this.teacherRepo.remove(teacher);
-    return { message: 'Maestro eliminado' };
+    teacher.user.activo = false;
+    await this.userRepo.save(teacher.user);
+    return { message: 'Maestro desactivado' };
   }
 
   @Get(':id/subjects')

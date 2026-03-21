@@ -84,5 +84,6 @@ export interface AuthData {
     nombre: string;
     email: string;
     role: string;
+    foto_url: string | null;
   };
 }

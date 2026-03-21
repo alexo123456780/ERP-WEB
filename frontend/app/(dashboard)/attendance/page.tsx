@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { attendanceService } from '../../../services/attendance.service';
 import { studentsService } from '../../../services/students.service';
 import { DataTable } from '../../../components/ui/DataTable';
@@ -10,7 +11,7 @@ import { FormField, inputClass } from '../../../components/ui/FormField';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardContent } from '../../../components/ui/card';
-import { Alert, AlertDescription } from '../../../components/ui/alert';
+import { Spinner } from '../../../components/ui/Spinner';
 import { Attendance, Student } from '../../../types';
 import { cn } from '../../../lib/utils';
 
@@ -18,10 +19,9 @@ export default function AttendancePage() {
   const qc = useQueryClient();
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
   const [modal, setModal] = useState(false);
-  const [mutError, setMutError] = useState('');
   const [form, setForm] = useState({ enrollment_id: '', fecha: new Date().toISOString().split('T')[0], presente: true, justificado: false });
 
-  const { data: students = [] } = useQuery({ queryKey: ['students'], queryFn: studentsService.getAll });
+  const { data: students = [] } = useQuery({ queryKey: ['students'], queryFn: () => studentsService.getAll() });
 
   const { data: attendanceData, isLoading } = useQuery({
     queryKey: ['attendance', selectedStudent],
@@ -31,8 +31,13 @@ export default function AttendancePage() {
 
   const createMut = useMutation({
     mutationFn: (d: any) => attendanceService.create(d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['attendance'] }); setModal(false); },
-    onError: (e: any) => setMutError(e.response?.data?.message || 'Error'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['attendance'] });
+      setModal(false);
+      setForm({ enrollment_id: '', fecha: new Date().toISOString().split('T')[0], presente: true, justificado: false });
+      toast.success('Asistencia registrada correctamente');
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Error al registrar asistencia'),
   });
 
   const resumen = attendanceData?.resumen;
@@ -53,9 +58,7 @@ export default function AttendancePage() {
     },
     {
       key: 'justificado', header: 'Justificado',
-      render: (r: Attendance) => r.justificado
-        ? <Badge variant="outline">Justificado</Badge>
-        : <span className="text-muted-foreground text-sm">No</span>
+      render: (r: Attendance) => r.justificado ? <Badge variant="outline">Justificado</Badge> : <span className="text-muted-foreground text-sm">No</span>
     },
   ];
 
@@ -66,9 +69,8 @@ export default function AttendancePage() {
           <h2 className="text-2xl font-bold tracking-tight">Asistencias</h2>
           <p className="text-sm text-muted-foreground">Control de asistencias por alumno</p>
         </div>
-        <Button onClick={() => { setMutError(''); setModal(true); }} size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />
-          Registrar asistencia
+        <Button onClick={() => setModal(true)} size="sm">
+          <Plus className="h-4 w-4 mr-1.5" />Registrar asistencia
         </Button>
       </div>
 
@@ -120,7 +122,7 @@ export default function AttendancePage() {
 
       <Modal open={modal} onClose={() => setModal(false)} title="Registrar asistencia">
         <form onSubmit={(e) => {
-          e.preventDefault(); setMutError('');
+          e.preventDefault();
           createMut.mutate({ enrollment_id: Number(form.enrollment_id), fecha: form.fecha, presente: form.presente, justificado: form.justificado });
         }} className="space-y-4">
           <FormField label="ID de inscripción (enrollment_id)">
@@ -131,26 +133,16 @@ export default function AttendancePage() {
           </FormField>
           <div className="flex gap-6">
             <label className="flex items-center gap-2 text-sm cursor-pointer font-medium">
-              <input
-                type="checkbox"
-                checked={form.presente}
-                onChange={(e) => setForm((f) => ({ ...f, presente: e.target.checked }))}
-                className="h-4 w-4 rounded border-input accent-primary"
-              />
+              <input type="checkbox" checked={form.presente} onChange={(e) => setForm((f) => ({ ...f, presente: e.target.checked }))} className="h-4 w-4 rounded border-input accent-primary" />
               Presente
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer font-medium">
-              <input
-                type="checkbox"
-                checked={form.justificado}
-                onChange={(e) => setForm((f) => ({ ...f, justificado: e.target.checked }))}
-                className="h-4 w-4 rounded border-input accent-primary"
-              />
+              <input type="checkbox" checked={form.justificado} onChange={(e) => setForm((f) => ({ ...f, justificado: e.target.checked }))} className="h-4 w-4 rounded border-input accent-primary" />
               Justificado
             </label>
           </div>
-          {mutError && <Alert variant="destructive"><AlertDescription>{mutError}</AlertDescription></Alert>}
-          <Button type="submit" disabled={createMut.isPending} className="w-full">
+          <Button type="submit" disabled={createMut.isPending} className="w-full gap-2">
+            {createMut.isPending && <Spinner size="xs" />}
             {createMut.isPending ? 'Registrando...' : 'Registrar asistencia'}
           </Button>
         </form>

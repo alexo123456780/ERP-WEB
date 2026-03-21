@@ -1,19 +1,23 @@
 'use client';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 import { studentsService } from '../../../services/students.service';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
+import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { FormField, inputClass } from '../../../components/ui/FormField';
 import { Button } from '../../../components/ui/button';
-import { Alert, AlertDescription } from '../../../components/ui/alert';
+import { Badge } from '../../../components/ui/badge';
+import { Spinner } from '../../../components/ui/Spinner';
 import { Student } from '../../../types';
 
-function StudentForm({ onSubmit, loading, error, initial }: {
+type FilterActivo = 'all' | 'true' | 'false';
+
+function StudentForm({ onSubmit, loading, initial }: {
   onSubmit: (data: any) => void;
   loading: boolean;
-  error: string;
   initial?: Partial<Student>;
 }) {
   const [form, setForm] = useState({
@@ -24,7 +28,6 @@ function StudentForm({ onSubmit, loading, error, initial }: {
     fecha_nacimiento: initial?.fecha_nacimiento ?? '',
     telefono: initial?.telefono ?? '',
   });
-
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
@@ -51,36 +54,70 @@ function StudentForm({ onSubmit, loading, error, initial }: {
           <input className={inputClass} value={form.telefono ?? ''} onChange={(e) => set('telefono', e.target.value)} placeholder="10 dígitos" />
         </FormField>
       </div>
-      {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
-      <Button type="submit" disabled={loading} className="w-full">
+      <Button type="submit" disabled={loading} className="w-full gap-2">
+        {loading && <Spinner size="xs" />}
         {loading ? 'Guardando...' : 'Guardar'}
       </Button>
     </form>
   );
 }
 
+function StudentInfoModal({ student, onClose }: { student: Student; onClose: () => void }) {
+  const row = (label: string, value: React.ReactNode) => (
+    <div className="flex justify-between py-2 border-b border-border last:border-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-right max-w-[55%] break-all">{value}</span>
+    </div>
+  );
+  return (
+    <Modal open onClose={onClose} title="Información del alumno">
+      <div className="space-y-0.5">
+        {row('Nombre', student.user.nombre)}
+        {row('Correo', student.user.email)}
+        {row('CURP', <span className="font-mono">{student.curp}</span>)}
+        {row('Fecha de nacimiento', student.fecha_nacimiento ?? <span className="text-muted-foreground">—</span>)}
+        {row('Teléfono', student.telefono ?? <span className="text-muted-foreground">—</span>)}
+        {row('Estado', student.user.activo
+          ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">Activo</Badge>
+          : <Badge className="bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 border-0">Inactivo</Badge>
+        )}
+        {row('Rol', student.user.role?.name ?? '—')}
+        {row('Registrado', new Date(student.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }))}
+      </div>
+    </Modal>
+  );
+}
+
 export default function StudentsPage() {
   const qc = useQueryClient();
+  const [filterActivo, setFilterActivo] = useState<FilterActivo>('all');
   const [modal, setModal] = useState<{ type: 'create' | 'edit'; student?: Student } | null>(null);
-  const [mutError, setMutError] = useState('');
+  const [viewStudent, setViewStudent] = useState<Student | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
 
-  const { data: students = [], isLoading } = useQuery({ queryKey: ['students'], queryFn: studentsService.getAll });
+  const activoParam = filterActivo === 'all' ? undefined : filterActivo === 'true';
+
+  const { data: students = [], isLoading } = useQuery({
+    queryKey: ['students', filterActivo],
+    queryFn: () => studentsService.getAll(activoParam),
+  });
 
   const createMut = useMutation({
     mutationFn: studentsService.create,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['students'] }); setModal(null); },
-    onError: (e: any) => setMutError(e.response?.data?.message || 'Error al crear alumno'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['students'] }); setModal(null); toast.success('Alumno creado correctamente'); },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Error al crear alumno'),
   });
 
   const updateMut = useMutation({
     mutationFn: ({ id, data }: any) => studentsService.update(id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['students'] }); setModal(null); },
-    onError: (e: any) => setMutError(e.response?.data?.message || 'Error al actualizar'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['students'] }); setModal(null); toast.success('Alumno actualizado correctamente'); },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Error al actualizar'),
   });
 
   const deleteMut = useMutation({
     mutationFn: studentsService.delete,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['students'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['students'] }); setDeleteTarget(null); toast.success('Alumno eliminado'); },
+    onError: (e: any) => { setDeleteTarget(null); toast.error(e.response?.data?.message || 'Error al eliminar'); },
   });
 
   const columns = [
@@ -89,25 +126,31 @@ export default function StudentsPage() {
     { key: 'curp', header: 'CURP', render: (r: Student) => <span className="font-mono text-xs">{r.curp}</span> },
     { key: 'telefono', header: 'Teléfono', render: (r: Student) => r.telefono ?? <span className="text-muted-foreground">—</span> },
     {
+      key: 'activo', header: 'Estado',
+      render: (r: Student) => r.user.activo
+        ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">Activo</Badge>
+        : <Badge className="bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 border-0">Inactivo</Badge>
+    },
+    {
       key: 'actions', header: '',
       render: (r: Student) => (
         <div className="flex justify-end gap-1">
-          <Button
-            variant="ghost" size="icon" className="h-8 w-8"
-            onClick={() => { setMutError(''); setModal({ type: 'edit', student: r }); }}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setViewStudent(r)} title="Ver detalle">
+            <Eye className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setModal({ type: 'edit', student: r })} title="Editar">
             <Pencil className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => { if (confirm('¿Eliminar alumno?')) deleteMut.mutate(r.id); }}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(r)} title="Eliminar">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       ),
     },
   ];
+
+  const filterBtnClass = (val: FilterActivo) =>
+    `px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${filterActivo === val ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`;
 
   return (
     <div className="space-y-4">
@@ -116,30 +159,41 @@ export default function StudentsPage() {
           <h2 className="text-2xl font-bold tracking-tight">Alumnos</h2>
           <p className="text-sm text-muted-foreground">{students.length} alumno{students.length !== 1 ? 's' : ''} registrado{students.length !== 1 ? 's' : ''}</p>
         </div>
-        <Button onClick={() => { setMutError(''); setModal({ type: 'create' }); }} size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />
-          Nuevo alumno
+        <Button onClick={() => setModal({ type: 'create' })} size="sm">
+          <Plus className="h-4 w-4 mr-1.5" />Nuevo alumno
         </Button>
+      </div>
+
+      <div className="flex items-center gap-1 bg-muted/40 rounded-lg p-1 w-fit border border-border">
+        <button className={filterBtnClass('all')} onClick={() => setFilterActivo('all')}>Todos</button>
+        <button className={filterBtnClass('true')} onClick={() => setFilterActivo('true')}>Activos</button>
+        <button className={filterBtnClass('false')} onClick={() => setFilterActivo('false')}>Inactivos</button>
       </div>
 
       <DataTable columns={columns} data={students} loading={isLoading} emptyMessage="No hay alumnos registrados" />
 
-      <Modal
-        open={!!modal}
-        onClose={() => setModal(null)}
-        title={modal?.type === 'create' ? 'Nuevo alumno' : 'Editar alumno'}
-      >
+      {viewStudent && <StudentInfoModal student={viewStudent} onClose={() => setViewStudent(null)} />}
+
+      <Modal open={!!modal} onClose={() => setModal(null)} title={modal?.type === 'create' ? 'Nuevo alumno' : 'Editar alumno'}>
         <StudentForm
           initial={modal?.student}
           loading={createMut.isPending || updateMut.isPending}
-          error={mutError}
           onSubmit={(data) => {
-            setMutError('');
             if (modal?.type === 'create') createMut.mutate(data);
             else if (modal?.student) updateMut.mutate({ id: modal.student.id, data });
           }}
         />
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="¿Eliminar alumno?"
+        description={`Esto eliminará a "${deleteTarget?.user.nombre}" de forma permanente.`}
+        confirmLabel="Eliminar"
+        loading={deleteMut.isPending}
+        onConfirm={() => deleteTarget && deleteMut.mutate(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

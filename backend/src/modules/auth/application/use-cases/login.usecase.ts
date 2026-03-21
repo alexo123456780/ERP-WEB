@@ -36,6 +36,7 @@ export class LoginUseCase {
         nombre: user.nombre,
         email: user.email,
         role: user.role.name,
+        foto_url: user.foto_url ?? null,
       },
     };
   }
