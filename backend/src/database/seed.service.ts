@@ -17,8 +17,12 @@ export class SeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    await this.seedRoles();
-    await this.seedAdmin();
+    try {
+      await this.seedRoles();
+      await this.seedAdmin();
+    } catch (err) {
+      this.logger.error('Error en seed inicial (no crítico):', err?.message ?? err);
+    }
   }
 
   private async seedRoles() {
