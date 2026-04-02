@@ -8,7 +8,7 @@
 
 ### 🎯 Objetivo
 
-Desarrollar un sistema ERP escolar modular que permita gestionar de forma eficiente alumnos, maestros, materias, calificaciones, asistencia y pagos, con acceso diferenciado por roles (admin, maestro, alumno y padres).
+Desarrollar un sistema ERP escolar modular que permita gestionar de forma eficiente alumnos, maestros, materias, calificaciones, asistencia y pagos, con acceso diferenciado por roles (admin, maestro, alumno y padres)  Email: admin@educore.mx Contraseña: Admin1234
 
 ### 👥 Usuarios objetivo
 

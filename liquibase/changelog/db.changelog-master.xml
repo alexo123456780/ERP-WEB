@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.27.xsd">
+
+    <!--
+        CHANGELOG MASTER – EduCore ERP
+        ─────────────────────────────────────────────────────────────────
+        Cada nuevo cambio de esquema debe añadirse como un <changeSet>
+        nuevo con un id incremental y nunca modificar changesets ya
+        aplicados en producción.
+
+        Contextos disponibles:
+          · (sin contexto) – se ejecuta siempre (schema)
+          · dev            – solo en entornos de desarrollo (seed data)
+          · prod           – solo en producción (migraciones productivas)
+        ─────────────────────────────────────────────────────────────────
+    -->
+
+    <!-- ── 001 · Schema inicial ─────────────────────────────────── -->
+    <changeSet id="001-init-schema" author="erp-team">
+        <comment>Crea todas las tablas del sistema EduCore ERP e inserta los roles base.</comment>
+        <sqlFile path="changesets/001-init-schema.sql"
+                 relativeToChangelogFile="true"
+                 splitStatements="true"
+                 stripComments="true"
+                 endDelimiter=";"/>
+        <rollback>
+            DROP TABLE IF EXISTS `payments`;
+            DROP TABLE IF EXISTS `attendance`;
+            DROP TABLE IF EXISTS `grades`;
+            DROP TABLE IF EXISTS `enrollments`;
+            DROP TABLE IF EXISTS `subjects`;
+            DROP TABLE IF EXISTS `students`;
+            DROP TABLE IF EXISTS `teachers`;
+            DROP TABLE IF EXISTS `users`;
+            DROP TABLE IF EXISTS `roles`;
+        </rollback>
+    </changeSet>
+
+    <!-- ── 002 · Datos de prueba (solo dev) ─────────────────────── -->
+    <changeSet id="002-seed-data" author="erp-team" context="dev" runOnChange="true">
+        <comment>Pobla la base de datos con datos de prueba. Contraseña de todos los usuarios: Admin1234</comment>
+        <sqlFile path="changesets/002-seed-data.sql"
+                 relativeToChangelogFile="true"
+                 splitStatements="true"
+                 stripComments="false"
+                 endDelimiter=";"/>
+        <rollback>
+            SET FOREIGN_KEY_CHECKS = 0;
+            TRUNCATE TABLE `attendance`;
+            TRUNCATE TABLE `grades`;
+            TRUNCATE TABLE `payments`;
+            TRUNCATE TABLE `enrollments`;
+            TRUNCATE TABLE `subjects`;
+            TRUNCATE TABLE `students`;
+            TRUNCATE TABLE `teachers`;
+            DELETE FROM `users`;
+            SET FOREIGN_KEY_CHECKS = 1;
+        </rollback>
+    </changeSet>
+
+    <!-- ── 003 · Añadir foto_url a users ───────────────────────── -->
+    <changeSet id="003-add-foto-url-to-users" author="erp-team">
+        <comment>Agrega la columna foto_url a la tabla users para soporte de avatar.</comment>
+        <addColumn tableName="users">
+            <column name="foto_url" type="VARCHAR(500)" afterColumn="activo">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="users" columnName="foto_url"/>
+        </rollback>
+    </changeSet>
+
+    <!--
+        ── AÑADIR NUEVAS MIGRACIONES AQUÍ ──────────────────────────
+        Ejemplo:
+        <changeSet id="004-add-column-foo" author="erp-team">
+            <addColumn tableName="users">
+                <column name="foo" type="VARCHAR(100)"/>
+            </addColumn>
+            <rollback>
+                <dropColumn tableName="users" columnName="foo"/>
+            </rollback>
+        </changeSet>
+        ────────────────────────────────────────────────────────────
+    -->
+
+</databaseChangeLog>

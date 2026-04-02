@@ -5,25 +5,20 @@ services:
     container_name: database
     restart: unless-stopped
 
-
     environment:
       MYSQL_ROOT_PASSWORD: ${ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
 
-
     volumes:
-    - mysql_data:/var/lib/mysql
-    - ../database:/docker-entrypoint-initdb.d
-
+      - mysql_data:/var/lib/mysql
 
     ports:
       - "${DB_PORT}:3306"
 
     networks:
       - practica-network
-
 
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
@@ -33,12 +28,36 @@ services:
       start_period: 30s
 
 
+  liquibase:
+    build:
+      context: ../liquibase
+      dockerfile: Dockerfile
+    container_name: liquibase-migrations
+    restart: "no"
+
+    environment:
+      LIQUIBASE_COMMAND_URL: "jdbc:mysql://mysql:3306/${DB_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true"
+      LIQUIBASE_COMMAND_USERNAME: ${DB_USERNAME}
+      LIQUIBASE_COMMAND_PASSWORD: ${DB_PASSWORD}
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/db.changelog-master.xml
+
+    volumes:
+      - ../liquibase/changelog:/liquibase/changelog:z
+
+    command: ["update", "--contexts=dev"]
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    networks:
+      - practica-network
+
 
   backend:
     build:
-     context: ../backend
-     dockerfile: Dockerfile.dev
-
+      context: ../backend
+      dockerfile: Dockerfile.dev
 
     container_name: backend
     restart: unless-stopped
@@ -53,28 +72,26 @@ services:
       SECRET_GUARD: ${SECRET_GUARD}
       PUBLIC_URL: ${PUBLIC_URL}
 
-
     ports:
       - "${PORT}:3010"
 
     volumes:
-      - ../backend:/app
+      - ../backend:/app:z
       - /app/node_modules
       - backend_uploads:/app/public/uploads
 
     depends_on:
-      mysql:
-        condition: service_healthy
+      liquibase:
+        condition: service_completed_successfully
 
     networks:
       - practica-network
 
 
-
   frontend:
     build:
-     context: ../frontend
-     dockerfile: Dockerfile.dev
+      context: ../frontend
+      dockerfile: Dockerfile.dev
 
     container_name: frontend
     restart: unless-stopped
@@ -83,15 +100,15 @@ services:
       - "${PORT_FRONT}:3000"
 
     volumes:
-      - ../frontend:/app
+      - ../frontend:/app:z
       - /app/node_modules
 
     depends_on:
       - backend
 
-
     networks:
       - practica-network
+
 
 networks:
   practica-network:

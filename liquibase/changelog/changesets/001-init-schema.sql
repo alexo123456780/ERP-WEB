@@ -1,5 +1,7 @@
-CREATE DATABASE IF NOT EXISTS `dbpractica`;
-USE `dbpractica`;
+-- ============================================================
+-- CHANGESET 001 · Schema inicial EduCore ERP
+-- Gestionado por Liquibase – NO ejecutar manualmente
+-- ============================================================
 
 -- Roles
 CREATE TABLE IF NOT EXISTS `roles` (

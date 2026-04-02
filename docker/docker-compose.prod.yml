@@ -15,6 +15,7 @@ services:
     networks:
       - erp-network
 
+
   mysql:
     image: mysql:8.0
     container_name: database
@@ -26,7 +27,6 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
-      - ../database:/docker-entrypoint-initdb.d
     expose:
       - "3306"
     networks:
@@ -37,6 +37,28 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+
+  liquibase:
+    image: ${LIQUIBASE_IMAGE}
+    container_name: liquibase-migrations
+    restart: "no"
+
+    environment:
+      LIQUIBASE_COMMAND_URL: "jdbc:mysql://mysql:3306/${DB_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true"
+      LIQUIBASE_COMMAND_USERNAME: ${DB_USERNAME}
+      LIQUIBASE_COMMAND_PASSWORD: ${DB_PASSWORD}
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/db.changelog-master.xml
+
+    command: ["update", "--contexts=prod"]
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    networks:
+      - erp-network
+
 
   backend:
     image: ${BACKEND_IMAGE}
@@ -56,10 +78,11 @@ services:
     volumes:
       - backend_uploads:/app/public/uploads
     depends_on:
-      mysql:
-        condition: service_healthy
+      liquibase:
+        condition: service_completed_successfully
     networks:
       - erp-network
+
 
   frontend:
     image: ${FRONTEND_IMAGE}
@@ -73,6 +96,7 @@ services:
       - backend
     networks:
       - erp-network
+
 
 networks:
   erp-network:

@@ -1,8 +1,9 @@
 -- ============================================================
--- SEEDER: Datos de prueba para EduCore ERP
+-- CHANGESET 002 · Datos de prueba EduCore ERP  (context: dev)
 -- Password de todos los usuarios: Admin1234
+-- Gestionado por Liquibase – NO ejecutar manualmente
+-- runOnChange=true: se re-aplica automáticamente al modificar
 -- ============================================================
-USE `dbpractica`;
 
 -- Limpiar datos previos respetando FK
 SET FOREIGN_KEY_CHECKS = 0;
@@ -73,7 +74,6 @@ INSERT INTO `subjects` (`nombre`, `descripcion`, `creditos`, `teacher_id`) VALUE
   ('Educación Física',    'Acondicionamiento físico y deportes en equipo',    3, 5);
 
 -- ─── ENROLLMENTS (ciclo 2025-1) ───────────────────────────────
--- Cada alumno inscrito en 5 materias
 INSERT INTO `enrollments` (`student_id`, `subject_id`, `ciclo`) VALUES
   -- Ana Gómez (student 1)      → IDs 1-5
   (1,1,'2025-1'),(1,2,'2025-1'),(1,3,'2025-1'),(1,5,'2025-1'),(1,6,'2025-1'),
@@ -264,13 +264,3 @@ INSERT INTO `payments` (`student_id`, `concepto`, `monto`, `fecha_pago`, `estado
   (10,'Colegiatura Enero 2025',      800.00,'2025-01-31','pagado','2025-1'),
   (10,'Colegiatura Febrero 2025',    800.00, NULL,       'pendiente','2025-1'),
   (10,'Colegiatura Marzo 2025',      800.00, NULL,       'pendiente','2025-1');
-
--- ─── RESUMEN ──────────────────────────────────────────────────
-SELECT 'users'       AS tabla, COUNT(*) AS registros FROM users
-UNION ALL SELECT 'teachers',   COUNT(*) FROM teachers
-UNION ALL SELECT 'students',   COUNT(*) FROM students
-UNION ALL SELECT 'subjects',   COUNT(*) FROM subjects
-UNION ALL SELECT 'enrollments',COUNT(*) FROM enrollments
-UNION ALL SELECT 'grades',     COUNT(*) FROM grades
-UNION ALL SELECT 'attendance', COUNT(*) FROM attendance
-UNION ALL SELECT 'payments',   COUNT(*) FROM payments;
