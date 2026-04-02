@@ -54,7 +54,7 @@ jobs:
         working-directory: frontend
         run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: https://erp-backend.onrender.com/api
+          NEXT_PUBLIC_API_URL: https://erp-backend-9c1d.onrender.com/api
 
   # ────────────────────────────────────────────────
   # 3. DESPLEGAR BACKEND en Render
@@ -92,7 +92,7 @@ jobs:
             echo "[$i/40] Estado: $STATUS"
             if [ "$STATUS" = "live" ]; then
               echo "✅ Backend desplegado exitosamente!"
-              echo "🌐 URL: https://erp-backend.onrender.com/api"
+              echo "🌐 URL: https://erp-backend-9c1d.onrender.com/api"
               exit 0
             fi
             if [ "$STATUS" = "build_failed" ] || [ "$STATUS" = "deactivated" ] || [ "$STATUS" = "canceled" ]; then
@@ -139,7 +139,7 @@ jobs:
             echo "[$i/40] Estado: $STATUS"
             if [ "$STATUS" = "live" ]; then
               echo "✅ Frontend desplegado exitosamente!"
-              echo "🌐 URL: https://erp-frontend.onrender.com"
+              echo "🌐 URL: https://erp-frontend-ywij.onrender.com"
               exit 0
             fi
             if [ "$STATUS" = "build_failed" ] || [ "$STATUS" = "deactivated" ] || [ "$STATUS" = "canceled" ]; then
@@ -169,12 +169,12 @@ jobs:
           echo "  RESULTADO DEL DESPLIEGUE"
           echo "=================================="
           if [ "$BACKEND" = "success" ]; then
-            echo "✅ Backend:  https://erp-backend.onrender.com/api"
+            echo "✅ Backend:  https://erp-backend-9c1d.onrender.com/api"
           else
             echo "❌ Backend:  FALLÓ ($BACKEND)"
           fi
           if [ "$FRONTEND" = "success" ]; then
-            echo "✅ Frontend: https://erp-frontend.onrender.com"
+            echo "✅ Frontend: https://erp-frontend-ywij.onrender.com"
           else
             echo "❌ Frontend: FALLÓ ($FRONTEND)"
           fi

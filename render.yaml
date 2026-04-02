@@ -26,7 +26,7 @@ services:
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
-        value: https://erp-frontend.onrender.com
+        value: https://erp-frontend-ywij.onrender.com
 
   - type: web
     name: erp-frontend
@@ -37,4 +37,4 @@ services:
     dockerContext: ./frontend
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        value: https://erp-backend.onrender.com/api
+        value: https://erp-backend-9c1d.onrender.com/api
