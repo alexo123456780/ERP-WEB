@@ -20,22 +20,21 @@ import { DatabaseModule } from './database/database.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const isProduction = config.get('NODE_ENV') === 'production';
         const databaseUrl = config.get<string>('DATABASE_URL');
 
         if (databaseUrl) {
           return {
-            type: 'postgres',
+            type: 'postgres' as const,
             url: databaseUrl,
             entities: [__dirname + '/**/*.entity{.ts,.js}'],
             synchronize: true,
             logging: false,
-            ssl: isProduction ? { rejectUnauthorized: false } : false,
+            ssl: { rejectUnauthorized: false },
           };
         }
 
         return {
-          type: 'mysql',
+          type: 'mysql' as const,
           host: config.get('DB_HOST', 'localhost'),
           port: config.get<number>('DB_PORT', 3306),
           username: config.get('DB_USERNAME', 'root'),
@@ -44,7 +43,7 @@ import { DatabaseModule } from './database/database.module';
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
           synchronize: false,
           logging: false,
-        } as any;
+        };
       },
     }),
     DatabaseModule,
