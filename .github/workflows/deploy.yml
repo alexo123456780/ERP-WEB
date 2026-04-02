@@ -74,7 +74,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
             "https://api.render.com/v1/services/${{ secrets.RENDER_BACKEND_SERVICE_ID }}/deploys" \
-            -d '{"clearCache": false}')
+            -d '{"clearCache": "do_not_clear"}')
 
           echo "Respuesta: $RESPONSE"
 
@@ -147,7 +147,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
             "https://api.render.com/v1/services/${{ secrets.RENDER_FRONTEND_SERVICE_ID }}/deploys" \
-            -d '{"clearCache": false}')
+            -d '{"clearCache": "do_not_clear"}')
 
           echo "Respuesta: $RESPONSE"
 
