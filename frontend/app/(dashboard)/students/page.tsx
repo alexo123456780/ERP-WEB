@@ -8,53 +8,110 @@ import { DataTable } from '../../../components/ui/DataTable';
 import { Modal } from '../../../components/ui/Modal';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { FormField, inputClass } from '../../../components/ui/FormField';
+import { PasswordStrengthInput, isPasswordValid } from '../../../components/ui/PasswordStrengthInput';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Spinner } from '../../../components/ui/Spinner';
+import { useFormValidation } from '../../../hooks/useFormValidation';
+import { validationMessages as vm } from '../../../lib/validationMessages';
+import { useRole } from '../../../hooks/useRole';
+import { can } from '../../../lib/permissions';
+import { FilterStatusToggle, FilterActivo } from '../../../components/ui/FilterStatusToggle';
 import { Student } from '../../../types';
-
-type FilterActivo = 'all' | 'true' | 'false';
 
 function StudentForm({ onSubmit, loading, initial }: {
   onSubmit: (data: any) => void;
   loading: boolean;
   initial?: Partial<Student>;
 }) {
-  const [form, setForm] = useState({
-    nombre: initial?.user?.nombre ?? '',
-    email: initial?.user?.email ?? '',
-    password: '',
-    curp: initial?.curp ?? '',
-    fecha_nacimiento: initial?.fecha_nacimiento ?? '',
-    telefono: initial?.telefono ?? '',
-  });
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const { values, handleChange, handleBlur, validate, fieldError, submitDisabled } = useFormValidation(
+    {
+      nombre: initial?.user?.nombre ?? '',
+      email: initial?.user?.email ?? '',
+      password: '',
+      curp: initial?.curp ?? '',
+      fecha_nacimiento: initial?.fecha_nacimiento ?? '',
+      telefono: initial?.telefono ?? '',
+    },
+    {
+      nombre: [{ type: 'required' }],
+      email: [{ type: 'required' }, { type: 'email' }],
+      curp: [{ type: 'required' }, { type: 'exactLength', value: 18 }],
+      telefono: [{ type: 'phone' }],
+    },
+  );
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} className="space-y-4">
-      <FormField label="Nombre completo">
-        <input className={inputClass} value={form.nombre} onChange={(e) => set('nombre', e.target.value)} required placeholder="Juan Perez Garcia" />
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!validate()) return;
+        if (!initial && !isPasswordValid(values.password)) {
+          toast.error(vm.passwordWeak);
+          return;
+        }
+        onSubmit(values);
+      }}
+      className="space-y-4"
+    >
+      <FormField label="Nombre completo" error={fieldError('nombre')}>
+        <input
+          className={inputClass}
+          value={values.nombre}
+          onChange={(e) => handleChange('nombre', e.target.value)}
+          onBlur={() => handleBlur('nombre')}
+          placeholder="Juan Perez Garcia"
+        />
       </FormField>
-      <FormField label="Correo electrónico">
-        <input type="email" className={inputClass} value={form.email} onChange={(e) => set('email', e.target.value)} required placeholder="juan@escuela.com" />
+      <FormField label="Correo electrónico" error={fieldError('email')}>
+        <input
+          type="email"
+          className={inputClass}
+          value={values.email}
+          onChange={(e) => handleChange('email', e.target.value)}
+          onBlur={() => handleBlur('email')}
+          placeholder="juan@escuela.com"
+        />
       </FormField>
       {!initial && (
         <FormField label="Contraseña">
-          <input type="password" className={inputClass} value={form.password} onChange={(e) => set('password', e.target.value)} required minLength={6} placeholder="Mínimo 6 caracteres" />
+          <PasswordStrengthInput
+            value={values.password}
+            onChange={(v) => handleChange('password', v)}
+            required
+          />
         </FormField>
       )}
-      <FormField label="CURP">
-        <input className={inputClass} value={form.curp} onChange={(e) => set('curp', e.target.value.toUpperCase())} required maxLength={18} minLength={18} placeholder="18 caracteres" />
+      <FormField label="CURP" error={fieldError('curp')}>
+        <input
+          className={inputClass}
+          value={values.curp}
+          onChange={(e) => handleChange('curp', e.target.value.toUpperCase())}
+          onBlur={() => handleBlur('curp')}
+          maxLength={18}
+          placeholder="18 caracteres"
+        />
       </FormField>
       <div className="grid grid-cols-2 gap-4">
         <FormField label="Fecha de nacimiento">
-          <input type="date" className={inputClass} value={form.fecha_nacimiento ?? ''} onChange={(e) => set('fecha_nacimiento', e.target.value)} />
+          <input
+            type="date"
+            className={inputClass}
+            value={values.fecha_nacimiento ?? ''}
+            onChange={(e) => handleChange('fecha_nacimiento', e.target.value)}
+          />
         </FormField>
-        <FormField label="Teléfono">
-          <input className={inputClass} value={form.telefono ?? ''} onChange={(e) => set('telefono', e.target.value)} placeholder="10 dígitos" />
+        <FormField label="Teléfono" error={fieldError('telefono')}>
+          <input
+            className={inputClass}
+            value={values.telefono ?? ''}
+            onChange={(e) => handleChange('telefono', e.target.value)}
+            onBlur={() => handleBlur('telefono')}
+            placeholder="10 dígitos"
+          />
         </FormField>
       </div>
-      <Button type="submit" disabled={loading} className="w-full gap-2">
+      <Button type="submit" disabled={loading || submitDisabled} className="w-full gap-2">
         {loading && <Spinner size="xs" />}
         {loading ? 'Guardando...' : 'Guardar'}
       </Button>
@@ -89,6 +146,7 @@ function StudentInfoModal({ student, onClose }: { student: Student; onClose: () 
 }
 
 export default function StudentsPage() {
+  const role = useRole();
   const qc = useQueryClient();
   const [filterActivo, setFilterActivo] = useState<FilterActivo>('all');
   const [modal, setModal] = useState<{ type: 'create' | 'edit'; student?: Student } | null>(null);
@@ -116,8 +174,8 @@ export default function StudentsPage() {
 
   const deleteMut = useMutation({
     mutationFn: studentsService.delete,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['students'] }); setDeleteTarget(null); toast.success('Alumno eliminado'); },
-    onError: (e: any) => { setDeleteTarget(null); toast.error(e.response?.data?.message || 'Error al eliminar'); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['students'] }); setDeleteTarget(null); toast.success('Alumno desactivado'); },
+    onError: (e: any) => { setDeleteTarget(null); toast.error(e.response?.data?.message || 'Error al desactivar'); },
   });
 
   const columns = [
@@ -138,19 +196,20 @@ export default function StudentsPage() {
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setViewStudent(r)} title="Ver detalle">
             <Eye className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setModal({ type: 'edit', student: r })} title="Editar">
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(r)} title="Eliminar">
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          {role && can.editStudent(role) && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setModal({ type: 'edit', student: r })} title="Editar">
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {role && can.deleteStudent(role) && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(r)} title="Eliminar">
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       ),
     },
   ];
-
-  const filterBtnClass = (val: FilterActivo) =>
-    `px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${filterActivo === val ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`;
 
   return (
     <div className="space-y-4">
@@ -159,16 +218,19 @@ export default function StudentsPage() {
           <h2 className="text-2xl font-bold tracking-tight">Alumnos</h2>
           <p className="text-sm text-muted-foreground">{students.length} alumno{students.length !== 1 ? 's' : ''} registrado{students.length !== 1 ? 's' : ''}</p>
         </div>
-        <Button onClick={() => setModal({ type: 'create' })} size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />Nuevo alumno
-        </Button>
+        {role && can.createStudent(role) && (
+          <Button onClick={() => setModal({ type: 'create' })} size="sm">
+            <Plus className="h-4 w-4 mr-1.5" />Nuevo alumno
+          </Button>
+        )}
       </div>
 
-      <div className="flex items-center gap-1 bg-muted/40 rounded-lg p-1 w-fit border border-border">
-        <button className={filterBtnClass('all')} onClick={() => setFilterActivo('all')}>Todos</button>
-        <button className={filterBtnClass('true')} onClick={() => setFilterActivo('true')}>Activos</button>
-        <button className={filterBtnClass('false')} onClick={() => setFilterActivo('false')}>Inactivos</button>
-      </div>
+      <FilterStatusToggle
+        value={filterActivo}
+        onChange={setFilterActivo}
+        hasInactiveRecords={filterActivo === 'false' && students.length > 0}
+        onRestore={() => setFilterActivo('all')}
+      />
 
       <DataTable columns={columns} data={students} loading={isLoading} emptyMessage="No hay alumnos registrados" />
 
@@ -179,17 +241,21 @@ export default function StudentsPage() {
           initial={modal?.student}
           loading={createMut.isPending || updateMut.isPending}
           onSubmit={(data) => {
-            if (modal?.type === 'create') createMut.mutate(data);
-            else if (modal?.student) updateMut.mutate({ id: modal.student.id, data });
+            if (modal?.type === 'create') {
+              createMut.mutate(data);
+            } else if (modal?.student) {
+              const { password, ...updateData } = data;
+              updateMut.mutate({ id: modal.student.id, data: updateData });
+            }
           }}
         />
       </Modal>
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="¿Eliminar alumno?"
-        description={`Esto eliminará a "${deleteTarget?.user.nombre}" de forma permanente.`}
-        confirmLabel="Eliminar"
+        title="¿Desactivar alumno?"
+        description={`"${deleteTarget?.user.nombre}" quedará inactivo pero sus datos se conservarán.`}
+        confirmLabel="Desactivar"
         loading={deleteMut.isPending}
         onConfirm={() => deleteTarget && deleteMut.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)}

@@ -12,11 +12,17 @@ import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { Spinner } from '../../../components/ui/Spinner';
+import { useRole } from '../../../hooks/useRole';
+import { can } from '../../../lib/permissions';
 import { Payment, Student } from '../../../types';
 
 export default function PaymentsPage() {
+  const role = useRole();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<'pending' | 'student'>('pending');
+  // alumno/padre no pueden ver pagos pendientes globales; empezar en "student"
+  const [tab, setTab] = useState<'pending' | 'student'>(
+    role && can.viewPendingPayments(role) ? 'pending' : 'student'
+  );
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ student_id: '', concepto: '', monto: '', fecha_pago: '', estado: 'pendiente', ciclo: '' });
@@ -74,7 +80,7 @@ export default function PaymentsPage() {
         </Badge>
       )
     },
-    {
+    ...(role && can.updatePaymentStatus(role) ? [{
       key: 'actions', header: '',
       render: (r: Payment) => r.estado === 'pendiente' ? (
         <Button
@@ -87,7 +93,7 @@ export default function PaymentsPage() {
           Marcar pagado
         </Button>
       ) : null,
-    },
+    }] : []),
   ];
 
   return (
@@ -97,14 +103,18 @@ export default function PaymentsPage() {
           <h2 className="text-2xl font-bold tracking-tight">Pagos</h2>
           <p className="text-sm text-muted-foreground">Gestión de pagos y colegiaturas</p>
         </div>
-        <Button onClick={() => setModal(true)} size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />Registrar pago
-        </Button>
+        {role && can.createPayment(role) && (
+          <Button onClick={() => setModal(true)} size="sm">
+            <Plus className="h-4 w-4 mr-1.5" />Registrar pago
+          </Button>
+        )}
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as 'pending' | 'student')}>
         <TabsList>
-          <TabsTrigger value="pending">Pagos pendientes</TabsTrigger>
+          {role && can.viewPendingPayments(role) && (
+            <TabsTrigger value="pending">Pagos pendientes</TabsTrigger>
+          )}
           <TabsTrigger value="student">Por alumno</TabsTrigger>
         </TabsList>
       </Tabs>

@@ -12,9 +12,12 @@ import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Spinner } from '../../../components/ui/Spinner';
+import { useRole } from '../../../hooks/useRole';
+import { can } from '../../../lib/permissions';
 import { Grade, Student } from '../../../types';
 
 export default function GradesPage() {
+  const role = useRole();
   const qc = useQueryClient();
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
   const [modal, setModal] = useState(false);
@@ -74,9 +77,11 @@ export default function GradesPage() {
           <h2 className="text-2xl font-bold tracking-tight">Calificaciones</h2>
           <p className="text-sm text-muted-foreground">Consulta y registra calificaciones por alumno</p>
         </div>
-        <Button onClick={() => setModal(true)} size="sm">
-          <Plus className="h-4 w-4 mr-1.5" />Registrar calificación
-        </Button>
+        {role && can.createGrade(role) && (
+          <Button onClick={() => setModal(true)} size="sm">
+            <Plus className="h-4 w-4 mr-1.5" />Registrar calificación
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-lg border border-border p-4">

@@ -72,6 +72,15 @@ export class PaymentController {
     return this.paymentRepo.save(payment);
   }
 
+  @Get()
+  @Roles('admin')
+  async getAll() {
+    return this.paymentRepo.find({
+      relations: ['student', 'student.user'],
+      order: { ciclo: 'DESC' },
+    });
+  }
+
   @Get('pending')
   @Roles('admin')
   async getPending() {
