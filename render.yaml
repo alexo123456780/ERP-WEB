@@ -35,9 +35,6 @@ services:
     plan: free
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
-    buildArgs:
-      - key: NEXT_PUBLIC_API_URL
-        value: https://erp-backend.onrender.com/api
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://erp-backend.onrender.com/api
