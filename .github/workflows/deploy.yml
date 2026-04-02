@@ -26,7 +26,7 @@ jobs:
         working-directory: backend
         run: npm install
 
-      - name: "Compilar TypeScript (detecta errores de tipo)"
+      - name: "Compilar TypeScript (detecta errores)"
         working-directory: backend
         run: npm run build
 
@@ -50,7 +50,7 @@ jobs:
         working-directory: frontend
         run: npm install
 
-      - name: "Compilar Next.js (detecta errores de build)"
+      - name: "Compilar Next.js (detecta errores)"
         working-directory: frontend
         run: npm run build
         env:
@@ -63,46 +63,71 @@ jobs:
     name: "🚀 Deploy Backend → Render"
     runs-on: ubuntu-latest
     needs: [validate-backend, validate-frontend]
-    outputs:
-      deploy_id: ${{ steps.trigger.outputs.deploy_id }}
     steps:
-      - name: Disparar deploy en Render
-        id: trigger
+      - name: Disparar deploy y esperar resultado
         run: |
-          echo "Iniciando deploy del backend..."
-          RESPONSE=$(curl -sf -X POST \
+          set -e
+          echo "=== Iniciando deploy del backend ==="
+
+          # Disparar deploy
+          RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
             "https://api.render.com/v1/services/${{ secrets.RENDER_BACKEND_SERVICE_ID }}/deploys" \
             -d '{"clearCache": false}')
-          echo "Respuesta Render: $RESPONSE"
-          DEPLOY_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])" 2>/dev/null || echo "")
-          echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
-          echo "Deploy ID: $DEPLOY_ID"
 
-      - name: Esperar resultado del deploy
-        run: |
-          DEPLOY_ID="${{ steps.trigger.outputs.deploy_id }}"
-          echo "Monitoreando deploy $DEPLOY_ID..."
-          for i in $(seq 1 40); do
-            RESULT=$(curl -sf \
+          echo "Respuesta: $RESPONSE"
+
+          # Extraer deploy ID (maneja tanto {"id":"..."} como {"deploy":{"id":"..."}})
+          DEPLOY_ID=$(echo "$RESPONSE" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          if isinstance(d, dict):
+              dep = d.get('deploy', d)
+              print(dep.get('id', ''))
+          " 2>/dev/null || echo "")
+
+          if [ -z "$DEPLOY_ID" ]; then
+            echo "❌ No se pudo obtener el Deploy ID. Respuesta inválida de Render."
+            echo "Respuesta completa: $RESPONSE"
+            exit 1
+          fi
+
+          echo "✅ Deploy disparado: $DEPLOY_ID"
+          echo "=== Monitoreando estado ==="
+
+          # Esperar hasta 20 min (60 intentos × 20s)
+          for i in $(seq 1 60); do
+            RESULT=$(curl -s \
               -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
-              "https://api.render.com/v1/services/${{ secrets.RENDER_BACKEND_SERVICE_ID }}/deploys/$DEPLOY_ID" 2>/dev/null || echo '{"status":"unknown"}')
-            STATUS=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))")
-            echo "[$i/40] Estado: $STATUS"
+              "https://api.render.com/v1/services/${{ secrets.RENDER_BACKEND_SERVICE_ID }}/deploys/$DEPLOY_ID")
+
+            STATUS=$(echo "$RESULT" | python3 -c "
+            import sys, json
+            d = json.load(sys.stdin)
+            dep = d.get('deploy', d)
+            print(dep.get('status', 'unknown'))
+            " 2>/dev/null || echo "unknown")
+
+            echo "[$i/60] $(date +%H:%M:%S) Estado: $STATUS"
+
             if [ "$STATUS" = "live" ]; then
-              echo "✅ Backend desplegado exitosamente!"
+              echo ""
+              echo "✅ Backend DESPLEGADO exitosamente!"
               echo "🌐 URL: https://erp-backend-9c1d.onrender.com/api"
               exit 0
             fi
-            if [ "$STATUS" = "build_failed" ] || [ "$STATUS" = "deactivated" ] || [ "$STATUS" = "canceled" ]; then
-              echo "❌ Deploy falló con estado: $STATUS"
-              echo "Revisa los logs en: https://dashboard.render.com"
+
+            if echo "$STATUS" | grep -qE "failed|deactivated|canceled"; then
+              echo ""
+              echo "❌ Deploy FALLÓ con estado: $STATUS"
+              echo "📋 Logs: https://dashboard.render.com/web/srv-d76tdepaae7s73dggng0"
               exit 1
             fi
-            sleep 15
+            sleep 20
           done
-          echo "⚠️ Timeout esperando deploy (revisa Render dashboard)"
+
+          echo "⚠️ Timeout: el deploy tardó más de 20 min"
           exit 1
 
   # ────────────────────────────────────────────────
@@ -113,43 +138,66 @@ jobs:
     runs-on: ubuntu-latest
     needs: deploy-backend
     steps:
-      - name: Disparar deploy en Render
-        id: trigger
+      - name: Disparar deploy y esperar resultado
         run: |
-          echo "Iniciando deploy del frontend..."
-          RESPONSE=$(curl -sf -X POST \
+          set -e
+          echo "=== Iniciando deploy del frontend ==="
+
+          RESPONSE=$(curl -s -X POST \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
             "https://api.render.com/v1/services/${{ secrets.RENDER_FRONTEND_SERVICE_ID }}/deploys" \
             -d '{"clearCache": false}')
-          echo "Respuesta Render: $RESPONSE"
-          DEPLOY_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])" 2>/dev/null || echo "")
-          echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
-          echo "Deploy ID: $DEPLOY_ID"
 
-      - name: Esperar resultado del deploy
-        run: |
-          DEPLOY_ID="${{ steps.trigger.outputs.deploy_id }}"
-          echo "Monitoreando deploy $DEPLOY_ID..."
-          for i in $(seq 1 40); do
-            RESULT=$(curl -sf \
+          echo "Respuesta: $RESPONSE"
+
+          DEPLOY_ID=$(echo "$RESPONSE" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          if isinstance(d, dict):
+              dep = d.get('deploy', d)
+              print(dep.get('id', ''))
+          " 2>/dev/null || echo "")
+
+          if [ -z "$DEPLOY_ID" ]; then
+            echo "❌ No se pudo obtener el Deploy ID."
+            exit 1
+          fi
+
+          echo "✅ Deploy disparado: $DEPLOY_ID"
+          echo "=== Monitoreando estado ==="
+
+          for i in $(seq 1 60); do
+            RESULT=$(curl -s \
               -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
-              "https://api.render.com/v1/services/${{ secrets.RENDER_FRONTEND_SERVICE_ID }}/deploys/$DEPLOY_ID" 2>/dev/null || echo '{"status":"unknown"}')
-            STATUS=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))")
-            echo "[$i/40] Estado: $STATUS"
+              "https://api.render.com/v1/services/${{ secrets.RENDER_FRONTEND_SERVICE_ID }}/deploys/$DEPLOY_ID")
+
+            STATUS=$(echo "$RESULT" | python3 -c "
+            import sys, json
+            d = json.load(sys.stdin)
+            dep = d.get('deploy', d)
+            print(dep.get('status', 'unknown'))
+            " 2>/dev/null || echo "unknown")
+
+            echo "[$i/60] $(date +%H:%M:%S) Estado: $STATUS"
+
             if [ "$STATUS" = "live" ]; then
-              echo "✅ Frontend desplegado exitosamente!"
+              echo ""
+              echo "✅ Frontend DESPLEGADO exitosamente!"
               echo "🌐 URL: https://erp-frontend-ywij.onrender.com"
               exit 0
             fi
-            if [ "$STATUS" = "build_failed" ] || [ "$STATUS" = "deactivated" ] || [ "$STATUS" = "canceled" ]; then
-              echo "❌ Deploy falló con estado: $STATUS"
-              echo "Revisa los logs en: https://dashboard.render.com"
+
+            if echo "$STATUS" | grep -qE "failed|deactivated|canceled"; then
+              echo ""
+              echo "❌ Deploy FALLÓ con estado: $STATUS"
+              echo "📋 Logs: https://dashboard.render.com/web/srv-d76td6paae7s73dgghv0"
               exit 1
             fi
-            sleep 15
+            sleep 20
           done
-          echo "⚠️ Timeout esperando deploy (revisa Render dashboard)"
+
+          echo "⚠️ Timeout: el deploy tardó más de 20 min"
           exit 1
 
   # ────────────────────────────────────────────────
