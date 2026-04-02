@@ -86,18 +86,8 @@ export default function LoginPage() {
               Administra alumnos, maestros, calificaciones y pagos desde una sola plataforma.
             </p>
           </div>
-
-          {/* Linux badge */}
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-sm">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            <span className="text-xs font-medium text-slate-300">Powered by Linux</span>
-          </div>
         </div>
 
-        {/* Bottom label */}
-        <p className="absolute bottom-6 text-xs text-slate-500">
-          Tux &copy; Larry Ewing — licencia libre
-        </p>
       </div>
 
       {/* ── Right panel: login form ── */}
