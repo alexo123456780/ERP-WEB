@@ -19,12 +19,13 @@ import { DatabaseModule } from './database/database.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      useFactory: (config: ConfigService): any => {
         const databaseUrl = config.get<string>('DATABASE_URL');
 
         if (databaseUrl) {
           return {
-            type: 'postgres' as const,
+            type: 'postgres',
             url: databaseUrl,
             entities: [__dirname + '/**/*.entity{.ts,.js}'],
             synchronize: true,
@@ -34,7 +35,7 @@ import { DatabaseModule } from './database/database.module';
         }
 
         return {
-          type: 'mysql' as const,
+          type: 'mysql',
           host: config.get('DB_HOST', 'localhost'),
           port: config.get<number>('DB_PORT', 3306),
           username: config.get('DB_USERNAME', 'root'),
