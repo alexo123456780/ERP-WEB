@@ -18,6 +18,7 @@ import { validationMessages as vm } from '../../../lib/validationMessages';
 import { useRole } from '../../../hooks/useRole';
 import { can } from '../../../lib/permissions';
 import { FilterStatusToggle, FilterActivo } from '../../../components/ui/FilterStatusToggle';
+import { ExportButton } from '../../../components/ui/ExportButton';
 import { Student } from '../../../types';
 
 function StudentForm({ onSubmit, loading, initial }: {
@@ -189,15 +190,16 @@ export default function StudentsPage() {
   const isInactiveView = filterActivo === 'false';
 
   const columns = [
-    { key: 'nombre', header: 'Nombre', render: (r: Student) => <span className="font-medium">{r.user.nombre}</span> },
-    { key: 'email', header: 'Correo', render: (r: Student) => <span className="text-muted-foreground">{r.user.email}</span> },
+    { key: 'nombre', header: 'Nombre', render: (r: Student) => <span className="font-medium">{r.user.nombre}</span>, exportValue: (r: Student) => r.user.nombre },
+    { key: 'email', header: 'Correo', render: (r: Student) => <span className="text-muted-foreground">{r.user.email}</span>, exportValue: (r: Student) => r.user.email },
     { key: 'curp', header: 'CURP', render: (r: Student) => <span className="font-mono text-xs">{r.curp}</span> },
-    { key: 'telefono', header: 'Teléfono', render: (r: Student) => r.telefono ?? <span className="text-muted-foreground">—</span> },
+    { key: 'telefono', header: 'Teléfono', render: (r: Student) => r.telefono ?? <span className="text-muted-foreground">—</span>, exportValue: (r: Student) => r.telefono ?? '' },
     {
       key: 'activo', header: 'Estado',
       render: (r: Student) => r.user.activo
         ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">Activo</Badge>
-        : <Badge className="bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 border-0">Inactivo</Badge>
+        : <Badge className="bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 border-0">Inactivo</Badge>,
+      exportValue: (r: Student) => r.user.activo ? 'Activo' : 'Inactivo',
     },
     {
       key: 'actions', header: '',
@@ -239,11 +241,14 @@ export default function StudentsPage() {
           <h2 className="text-2xl font-bold tracking-tight">Alumnos</h2>
           <p className="text-sm text-muted-foreground">{students.length} alumno{students.length !== 1 ? 's' : ''} registrado{students.length !== 1 ? 's' : ''}</p>
         </div>
-        {role && can.createStudent(role) && (
-          <Button onClick={() => setModal({ type: 'create' })} size="sm">
-            <Plus className="h-4 w-4 mr-1.5" />Nuevo alumno
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <ExportButton data={students} columns={columns} filename="alumnos" disabled={isLoading} />
+          {role && can.createStudent(role) && (
+            <Button onClick={() => setModal({ type: 'create' })} size="sm">
+              <Plus className="h-4 w-4 mr-1.5" />Nuevo alumno
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

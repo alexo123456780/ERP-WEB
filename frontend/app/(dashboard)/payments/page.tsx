@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useRole } from '../../../hooks/useRole';
 import { can } from '../../../lib/permissions';
+import { ExportButton } from '../../../components/ui/ExportButton';
 import { Payment, Student } from '../../../types';
 
 export default function PaymentsPage() {
@@ -64,11 +65,11 @@ export default function PaymentsPage() {
   });
 
   const columns = [
-    { key: 'student', header: 'Alumno', render: (r: Payment) => <span className="font-medium">{r.student?.user?.nombre ?? '—'}</span> },
+    { key: 'student', header: 'Alumno', render: (r: Payment) => <span className="font-medium">{r.student?.user?.nombre ?? '—'}</span>, exportValue: (r: Payment) => r.student?.user?.nombre ?? '' },
     { key: 'concepto', header: 'Concepto' },
-    { key: 'monto', header: 'Monto', render: (r: Payment) => <span className="font-semibold">${Number(r.monto).toFixed(2)}</span> },
+    { key: 'monto', header: 'Monto', render: (r: Payment) => <span className="font-semibold">${Number(r.monto).toFixed(2)}</span>, exportValue: (r: Payment) => `$${Number(r.monto).toFixed(2)}` },
     { key: 'ciclo', header: 'Ciclo', render: (r: Payment) => <Badge variant="outline">{r.ciclo}</Badge> },
-    { key: 'fecha_pago', header: 'Fecha pago', render: (r: Payment) => r.fecha_pago ?? <span className="text-muted-foreground">—</span> },
+    { key: 'fecha_pago', header: 'Fecha pago', render: (r: Payment) => r.fecha_pago ?? <span className="text-muted-foreground">—</span>, exportValue: (r: Payment) => r.fecha_pago ?? '' },
     {
       key: 'estado', header: 'Estado',
       render: (r: Payment) => (
@@ -78,7 +79,8 @@ export default function PaymentsPage() {
         }>
           {r.estado === 'pagado' ? 'Pagado' : 'Pendiente'}
         </Badge>
-      )
+      ),
+      exportValue: (r: Payment) => r.estado === 'pagado' ? 'Pagado' : 'Pendiente',
     },
     ...(role && can.updatePaymentStatus(role) ? [{
       key: 'actions', header: '',
@@ -103,11 +105,19 @@ export default function PaymentsPage() {
           <h2 className="text-2xl font-bold tracking-tight">Pagos</h2>
           <p className="text-sm text-muted-foreground">Gestión de pagos y colegiaturas</p>
         </div>
-        {role && can.createPayment(role) && (
-          <Button onClick={() => setModal(true)} size="sm">
-            <Plus className="h-4 w-4 mr-1.5" />Registrar pago
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <ExportButton
+            data={tab === 'pending' ? pending : studentPayments}
+            columns={columns}
+            filename={tab === 'pending' ? 'pagos_pendientes' : 'pagos_alumno'}
+            disabled={tab === 'pending' ? pendingLoading : studentLoading}
+          />
+          {role && can.createPayment(role) && (
+            <Button onClick={() => setModal(true)} size="sm">
+              <Plus className="h-4 w-4 mr-1.5" />Registrar pago
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as 'pending' | 'student')}>

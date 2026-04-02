@@ -12,6 +12,7 @@ import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { FormField, inputClass } from '../../../components/ui/FormField';
 import { SearchInput } from '../../../components/ui/SearchInput';
 import { FilterStatusToggle, FilterActivo } from '../../../components/ui/FilterStatusToggle';
+import { ExportButton } from '../../../components/ui/ExportButton';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Spinner } from '../../../components/ui/Spinner';
@@ -81,18 +82,20 @@ export default function SubjectsPage() {
 
   const columns = [
     { key: 'nombre', header: 'Materia', render: (r: Subject) => <span className="font-medium">{r.nombre}</span> },
-    { key: 'creditos', header: 'Créditos', render: (r: Subject) => <Badge variant="secondary">{r.creditos} cr.</Badge> },
+    { key: 'creditos', header: 'Créditos', render: (r: Subject) => <Badge variant="secondary">{r.creditos} cr.</Badge>, exportValue: (r: Subject) => `${r.creditos} cr.` },
     {
       key: 'teacher', header: 'Maestro',
       render: (r: Subject) => r.teacher?.user?.nombre
         ? <span>{r.teacher.user.nombre}</span>
-        : <span className="text-muted-foreground">Sin asignar</span>
+        : <span className="text-muted-foreground">Sin asignar</span>,
+      exportValue: (r: Subject) => r.teacher?.user?.nombre ?? 'Sin asignar',
     },
     {
       key: 'activo', header: 'Estado',
       render: (r: Subject) => r.activo
         ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">Activa</Badge>
-        : <Badge className="bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 border-0">Inactiva</Badge>
+        : <Badge className="bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 border-0">Inactiva</Badge>,
+      exportValue: (r: Subject) => r.activo ? 'Activa' : 'Inactiva',
     },
     {
       key: 'actions', header: '',
@@ -141,11 +144,14 @@ export default function SubjectsPage() {
           <h2 className="text-2xl font-bold tracking-tight">Materias</h2>
           <p className="text-sm text-muted-foreground">{subjects.length} materia{subjects.length !== 1 ? 's' : ''} registrada{subjects.length !== 1 ? 's' : ''}</p>
         </div>
-        {role && can.createSubject(role) && (
-          <Button onClick={() => { setForm({ nombre: '', descripcion: '', creditos: '0', teacher_id: '' }); setModal('create'); }} size="sm">
-            <Plus className="h-4 w-4 mr-1.5" />Nueva materia
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <ExportButton data={subjects} columns={columns} filename="materias" disabled={isLoading} />
+          {role && can.createSubject(role) && (
+            <Button onClick={() => { setForm({ nombre: '', descripcion: '', creditos: '0', teacher_id: '' }); setModal('create'); }} size="sm">
+              <Plus className="h-4 w-4 mr-1.5" />Nueva materia
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

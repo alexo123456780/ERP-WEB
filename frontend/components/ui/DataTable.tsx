@@ -15,6 +15,7 @@ export interface Column<T> {
   key: string;
   header: string;
   render?: (row: T) => React.ReactNode;
+  exportValue?: (row: T) => string | number;
 }
 
 interface DataTableProps<T> {

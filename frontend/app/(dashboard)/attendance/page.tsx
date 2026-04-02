@@ -14,6 +14,7 @@ import { Card, CardContent } from '../../../components/ui/card';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useRole } from '../../../hooks/useRole';
 import { can } from '../../../lib/permissions';
+import { ExportButton } from '../../../components/ui/ExportButton';
 import { Attendance, Student } from '../../../types';
 import { cn } from '../../../lib/utils';
 
@@ -46,7 +47,7 @@ export default function AttendancePage() {
   const resumen = attendanceData?.resumen;
 
   const columns = [
-    { key: 'subject', header: 'Materia', render: (r: Attendance) => <span className="font-medium">{r.enrollment?.subject?.nombre ?? '—'}</span> },
+    { key: 'subject', header: 'Materia', render: (r: Attendance) => <span className="font-medium">{r.enrollment?.subject?.nombre ?? '—'}</span>, exportValue: (r: Attendance) => r.enrollment?.subject?.nombre ?? '' },
     { key: 'fecha', header: 'Fecha' },
     {
       key: 'presente', header: 'Asistencia',
@@ -57,11 +58,13 @@ export default function AttendancePage() {
         }>
           {r.presente ? 'Presente' : 'Ausente'}
         </Badge>
-      )
+      ),
+      exportValue: (r: Attendance) => r.presente ? 'Presente' : 'Ausente',
     },
     {
       key: 'justificado', header: 'Justificado',
-      render: (r: Attendance) => r.justificado ? <Badge variant="outline">Justificado</Badge> : <span className="text-muted-foreground text-sm">No</span>
+      render: (r: Attendance) => r.justificado ? <Badge variant="outline">Justificado</Badge> : <span className="text-muted-foreground text-sm">No</span>,
+      exportValue: (r: Attendance) => r.justificado ? 'Sí' : 'No',
     },
   ];
 
@@ -72,11 +75,14 @@ export default function AttendancePage() {
           <h2 className="text-2xl font-bold tracking-tight">Asistencias</h2>
           <p className="text-sm text-muted-foreground">Control de asistencias por alumno</p>
         </div>
-        {role && can.createAttendance(role) && (
-          <Button onClick={() => setModal(true)} size="sm">
-            <Plus className="h-4 w-4 mr-1.5" />Registrar asistencia
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <ExportButton data={attendanceData?.records ?? []} columns={columns} filename="asistencias" disabled={isLoading || !selectedStudent} />
+          {role && can.createAttendance(role) && (
+            <Button onClick={() => setModal(true)} size="sm">
+              <Plus className="h-4 w-4 mr-1.5" />Registrar asistencia
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="bg-card rounded-lg border border-border p-4">

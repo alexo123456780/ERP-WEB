@@ -14,6 +14,7 @@ import { Card, CardContent } from '../../../components/ui/card';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useRole } from '../../../hooks/useRole';
 import { can } from '../../../lib/permissions';
+import { ExportButton } from '../../../components/ui/ExportButton';
 import { Grade, Student } from '../../../types';
 
 export default function GradesPage() {
@@ -50,9 +51,9 @@ export default function GradesPage() {
   });
 
   const columns = [
-    { key: 'subject', header: 'Materia', render: (r: Grade) => <span className="font-medium">{r.enrollment?.subject?.nombre ?? '—'}</span> },
-    { key: 'ciclo', header: 'Ciclo', render: (r: Grade) => <Badge variant="outline">{r.enrollment?.ciclo ?? '—'}</Badge> },
-    { key: 'parcial', header: 'Parcial', render: (r: Grade) => `Parcial ${r.parcial}` },
+    { key: 'subject', header: 'Materia', render: (r: Grade) => <span className="font-medium">{r.enrollment?.subject?.nombre ?? '—'}</span>, exportValue: (r: Grade) => r.enrollment?.subject?.nombre ?? '' },
+    { key: 'ciclo', header: 'Ciclo', render: (r: Grade) => <Badge variant="outline">{r.enrollment?.ciclo ?? '—'}</Badge>, exportValue: (r: Grade) => r.enrollment?.ciclo ?? '' },
+    { key: 'parcial', header: 'Parcial', render: (r: Grade) => `Parcial ${r.parcial}`, exportValue: (r: Grade) => `Parcial ${r.parcial}` },
     {
       key: 'calificacion', header: 'Calificación',
       render: (r: Grade) => {
@@ -65,9 +66,10 @@ export default function GradesPage() {
             {r.calificacion}
           </Badge>
         );
-      }
+      },
+      exportValue: (r: Grade) => r.calificacion,
     },
-    { key: 'fecha', header: 'Fecha', render: (r: Grade) => r.fecha ?? <span className="text-muted-foreground">—</span> },
+    { key: 'fecha', header: 'Fecha', render: (r: Grade) => r.fecha ?? <span className="text-muted-foreground">—</span>, exportValue: (r: Grade) => r.fecha ?? '' },
   ];
 
   return (
@@ -77,11 +79,14 @@ export default function GradesPage() {
           <h2 className="text-2xl font-bold tracking-tight">Calificaciones</h2>
           <p className="text-sm text-muted-foreground">Consulta y registra calificaciones por alumno</p>
         </div>
-        {role && can.createGrade(role) && (
-          <Button onClick={() => setModal(true)} size="sm">
-            <Plus className="h-4 w-4 mr-1.5" />Registrar calificación
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <ExportButton data={grades} columns={columns} filename="calificaciones" disabled={isLoading || !selectedStudent} />
+          {role && can.createGrade(role) && (
+            <Button onClick={() => setModal(true)} size="sm">
+              <Plus className="h-4 w-4 mr-1.5" />Registrar calificación
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="bg-card rounded-lg border border-border p-4">

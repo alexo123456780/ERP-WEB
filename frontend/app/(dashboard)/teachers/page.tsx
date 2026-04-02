@@ -18,6 +18,7 @@ import { useRole } from '../../../hooks/useRole';
 import { can } from '../../../lib/permissions';
 import { FilterStatusToggle, FilterActivo } from '../../../components/ui/FilterStatusToggle';
 import { SearchInput } from '../../../components/ui/SearchInput';
+import { ExportButton } from '../../../components/ui/ExportButton';
 import { Teacher } from '../../../types';
 
 function TeacherForm({ onSubmit, loading, initial }: {
@@ -161,17 +162,19 @@ export default function TeachersPage() {
   });
 
   const columns = [
-    { key: 'nombre', header: 'Nombre', render: (r: Teacher) => <span className="font-medium">{r.user.nombre}</span> },
-    { key: 'email', header: 'Correo', render: (r: Teacher) => <span className="text-muted-foreground">{r.user.email}</span> },
+    { key: 'nombre', header: 'Nombre', render: (r: Teacher) => <span className="font-medium">{r.user.nombre}</span>, exportValue: (r: Teacher) => r.user.nombre },
+    { key: 'email', header: 'Correo', render: (r: Teacher) => <span className="text-muted-foreground">{r.user.email}</span>, exportValue: (r: Teacher) => r.user.email },
     {
       key: 'especialidad', header: 'Especialidad',
-      render: (r: Teacher) => r.especialidad ? <Badge variant="secondary">{r.especialidad}</Badge> : <span className="text-muted-foreground">—</span>
+      render: (r: Teacher) => r.especialidad ? <Badge variant="secondary">{r.especialidad}</Badge> : <span className="text-muted-foreground">—</span>,
+      exportValue: (r: Teacher) => r.especialidad ?? '',
     },
     {
       key: 'activo', header: 'Estado',
       render: (r: Teacher) => r.user.activo
         ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">Activo</Badge>
-        : <Badge className="bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 border-0">Inactivo</Badge>
+        : <Badge className="bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 border-0">Inactivo</Badge>,
+      exportValue: (r: Teacher) => r.user.activo ? 'Activo' : 'Inactivo',
     },
     {
       key: 'actions', header: '',
@@ -213,11 +216,14 @@ export default function TeachersPage() {
           <h2 className="text-2xl font-bold tracking-tight">Maestros</h2>
           <p className="text-sm text-muted-foreground">{teachers.length} maestro{teachers.length !== 1 ? 's' : ''} registrado{teachers.length !== 1 ? 's' : ''}</p>
         </div>
-        {role && can.createTeacher(role) && (
-          <Button onClick={() => setModal({ type: 'create' })} size="sm">
-            <Plus className="h-4 w-4 mr-1.5" />Nuevo maestro
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <ExportButton data={teachers} columns={columns} filename="maestros" disabled={isLoading} />
+          {role && can.createTeacher(role) && (
+            <Button onClick={() => setModal({ type: 'create' })} size="sm">
+              <Plus className="h-4 w-4 mr-1.5" />Nuevo maestro
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
