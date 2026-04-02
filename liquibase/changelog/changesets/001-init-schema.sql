@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS `subjects` (
   `descripcion` TEXT NULL,
   `creditos` INT NOT NULL DEFAULT 0,
   `teacher_id` INT UNSIGNED NULL,
+  `activo` TINYINT(1) NOT NULL DEFAULT 1,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `fk_subjects_teacher` (`teacher_id`),

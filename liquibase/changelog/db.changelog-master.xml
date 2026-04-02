@@ -75,15 +75,28 @@
         </rollback>
     </changeSet>
 
+    <!-- ── 004 · Soft delete en subjects ───────────────────────── -->
+    <changeSet id="004-add-activo-to-subjects" author="erp-team">
+        <comment>Agrega columna activo a subjects para soporte de soft delete.</comment>
+        <addColumn tableName="subjects">
+            <column name="activo" type="TINYINT(1)" defaultValueNumeric="1" afterColumn="teacher_id">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="subjects" columnName="activo"/>
+        </rollback>
+    </changeSet>
+
     <!--
         ── AÑADIR NUEVAS MIGRACIONES AQUÍ ──────────────────────────
         Ejemplo:
-        <changeSet id="004-add-column-foo" author="erp-team">
-            <addColumn tableName="users">
+        <changeSet id="005-add-column-foo" author="erp-team">
+            <addColumn tableName="subjects">
                 <column name="foo" type="VARCHAR(100)"/>
             </addColumn>
             <rollback>
-                <dropColumn tableName="users" columnName="foo"/>
+                <dropColumn tableName="subjects" columnName="foo"/>
             </rollback>
         </changeSet>
         ────────────────────────────────────────────────────────────

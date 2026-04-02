@@ -2,8 +2,11 @@ import api from './api';
 import { ApiResponse, Subject } from '../types';
 
 export const subjectsService = {
-  async getAll(): Promise<Subject[]> {
-    const res = await api.get<ApiResponse<Subject[]>>('/subjects');
+  async getAll(activo?: boolean, search?: string): Promise<Subject[]> {
+    const params: Record<string, any> = {};
+    if (activo !== undefined) params.activo = activo;
+    if (search?.trim()) params.search = search.trim();
+    const res = await api.get<ApiResponse<Subject[]>>('/subjects', { params });
     return res.data.data;
   },
 
@@ -19,6 +22,11 @@ export const subjectsService = {
 
   async update(id: number, data: any): Promise<Subject> {
     const res = await api.patch<ApiResponse<Subject>>(`/subjects/${id}`, data);
+    return res.data.data;
+  },
+
+  async restore(id: number): Promise<Subject> {
+    const res = await api.patch<ApiResponse<Subject>>(`/subjects/${id}`, { activo: true });
     return res.data.data;
   },
 

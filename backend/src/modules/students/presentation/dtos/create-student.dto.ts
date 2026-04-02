@@ -1,4 +1,4 @@
-import { IsString, IsEmail, MinLength, IsOptional, IsDateString, Length, IsIn } from 'class-validator';
+import { IsString, IsEmail, MinLength, IsOptional, IsDateString, Length, IsBoolean } from 'class-validator';
 
 export class CreateStudentDto {
   // User fields
@@ -47,4 +47,8 @@ export class UpdateStudentDto {
   @IsOptional()
   @IsString()
   telefono?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  activo?: boolean;
 }

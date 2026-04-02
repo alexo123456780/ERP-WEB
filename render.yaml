@@ -1,0 +1,43 @@
+databases:
+  - name: erp-db
+    databaseName: dbpractica
+    user: erpuser
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: erp-backend
+    env: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: erp-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        value: https://erp-frontend.onrender.com
+
+  - type: web
+    name: erp-frontend
+    env: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    buildArgs:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://erp-backend.onrender.com/api
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://erp-backend.onrender.com/api

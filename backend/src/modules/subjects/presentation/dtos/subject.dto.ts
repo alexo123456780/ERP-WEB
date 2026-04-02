@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, Min, IsInt, IsPositive } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, IsInt, IsPositive, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateSubjectDto {
@@ -40,6 +40,10 @@ export class UpdateSubjectDto {
   @Type(() => Number)
   @IsInt()
   teacher_id?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  activo?: boolean;
 }
 
 export class EnrollStudentDto {

@@ -40,9 +40,22 @@ export class TeacherController {
 
   @Get()
   @Roles('admin', 'maestro')
-  findAll(@Query('activo') activo?: string) {
-    const where = activo !== undefined ? { user: { activo: activo === 'true' } } : {};
-    return this.teacherRepo.find({ where, relations: ['user', 'user.role'] });
+  findAll(@Query('activo') activo?: string, @Query('search') search?: string) {
+    const qb = this.teacherRepo
+      .createQueryBuilder('teacher')
+      .leftJoinAndSelect('teacher.user', 'user')
+      .leftJoinAndSelect('user.role', 'role');
+
+    if (activo !== undefined) {
+      qb.andWhere('user.activo = :activo', { activo: activo === 'true' });
+    }
+    if (search) {
+      qb.andWhere(
+        '(user.nombre LIKE :q OR user.email LIKE :q OR teacher.especialidad LIKE :q)',
+        { q: `%${search}%` },
+      );
+    }
+    return qb.getMany();
   }
 
   @Get(':id')
@@ -83,6 +96,7 @@ export class TeacherController {
       teacher.user.email = dto.email;
     }
     if (dto.especialidad) teacher.especialidad = dto.especialidad;
+    if (dto.activo !== undefined) teacher.user.activo = dto.activo;
 
     await this.userRepo.save(teacher.user);
     return this.teacherRepo.save(teacher);

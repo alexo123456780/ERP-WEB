@@ -42,9 +42,9 @@ export class StudentController {
 
   @Get()
   @Roles('admin', 'maestro')
-  async findAll(@Query('activo') activo?: string) {
+  async findAll(@Query('activo') activo?: string, @Query('search') search?: string) {
     const filter = activo !== undefined ? activo === 'true' : undefined;
-    return this.getUC.findAll(filter);
+    return this.getUC.findAll(filter, search);
   }
 
   @Get(':id')

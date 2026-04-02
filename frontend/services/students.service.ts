@@ -2,8 +2,10 @@ import api from './api';
 import { ApiResponse, Student } from '../types';
 
 export const studentsService = {
-  async getAll(activo?: boolean): Promise<Student[]> {
-    const params = activo !== undefined ? { activo } : {};
+  async getAll(activo?: boolean, search?: string): Promise<Student[]> {
+    const params: Record<string, any> = {};
+    if (activo !== undefined) params.activo = activo;
+    if (search?.trim()) params.search = search.trim();
     const res = await api.get<ApiResponse<Student[]>>('/students', { params });
     return res.data.data;
   },
@@ -20,6 +22,11 @@ export const studentsService = {
 
   async update(id: number, data: any): Promise<Student> {
     const res = await api.patch<ApiResponse<Student>>(`/students/${id}`, data);
+    return res.data.data;
+  },
+
+  async restore(id: number): Promise<Student> {
+    const res = await api.patch<ApiResponse<Student>>(`/students/${id}`, { activo: true });
     return res.data.data;
   },
 

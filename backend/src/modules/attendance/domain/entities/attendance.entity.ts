@@ -19,9 +19,9 @@ export class AttendanceEntity {
   @Column({ type: 'date' })
   fecha: string;
 
-  @Column({ type: 'tinyint', default: 1 })
+  @Column({ type: 'boolean', default: true })
   presente: boolean;
 
-  @Column({ type: 'tinyint', default: 0 })
+  @Column({ type: 'boolean', default: false })
   justificado: boolean;
 }

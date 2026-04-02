@@ -30,7 +30,7 @@ export class UserEntity {
   @Column({ name: 'foto_url', type: 'varchar', length: 500, nullable: true, default: null })
   foto_url: string | null;
 
-  @Column({ name: 'activo', type: 'tinyint', default: 1 })
+  @Column({ name: 'activo', type: 'boolean', default: true })
   activo: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

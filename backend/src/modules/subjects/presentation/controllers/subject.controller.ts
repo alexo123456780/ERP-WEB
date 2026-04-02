@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   ParseIntPipe,
   UseGuards,
   NotFoundException,
@@ -38,8 +39,25 @@ export class SubjectController {
 
   @Get()
   @Roles('admin', 'maestro', 'alumno')
-  findAll() {
-    return this.subjectRepo.find({ where: { activo: true }, relations: ['teacher', 'teacher.user'] });
+  findAll(@Query('activo') activo?: string, @Query('search') search?: string) {
+    const qb = this.subjectRepo
+      .createQueryBuilder('subject')
+      .leftJoinAndSelect('subject.teacher', 'teacher')
+      .leftJoinAndSelect('teacher.user', 'user');
+
+    if (activo !== undefined) {
+      qb.andWhere('subject.activo = :activo', { activo: activo === 'true' });
+    } else {
+      qb.andWhere('subject.activo = true');
+    }
+
+    if (search) {
+      qb.andWhere(
+        '(subject.nombre LIKE :q OR subject.descripcion LIKE :q)',
+        { q: `%${search}%` },
+      );
+    }
+    return qb.getMany();
   }
 
   @Get(':id')
@@ -81,6 +99,7 @@ export class SubjectController {
       if (!teacher) throw new NotFoundException('Maestro no encontrado');
       subject.teacher = teacher;
     }
+    if (dto.activo !== undefined) subject.activo = dto.activo;
     return this.subjectRepo.save(subject);
   }
 

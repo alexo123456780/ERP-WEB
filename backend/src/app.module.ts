@@ -10,6 +10,7 @@ import { SubjectsModule } from './modules/subjects/subjects.module';
 import { GradesModule } from './modules/grades/grades.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -18,18 +19,35 @@ import { PaymentsModule } from './modules/payments/payments.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'mysql',
-        host: config.get('DB_HOST', 'localhost'),
-        port: config.get<number>('DB_PORT', 3306),
-        username: config.get('DB_USERNAME', 'root'),
-        password: config.get('DB_PASSWORD', ''),
-        database: config.get('DB_DATABASE', 'dbpractica'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false,
-        logging: false,
-      }),
+      useFactory: (config: ConfigService) => {
+        const isProduction = config.get('NODE_ENV') === 'production';
+        const databaseUrl = config.get<string>('DATABASE_URL');
+
+        if (databaseUrl) {
+          return {
+            type: 'postgres',
+            url: databaseUrl,
+            entities: [__dirname + '/**/*.entity{.ts,.js}'],
+            synchronize: true,
+            logging: false,
+            ssl: isProduction ? { rejectUnauthorized: false } : false,
+          };
+        }
+
+        return {
+          type: 'mysql',
+          host: config.get('DB_HOST', 'localhost'),
+          port: config.get<number>('DB_PORT', 3306),
+          username: config.get('DB_USERNAME', 'root'),
+          password: config.get('DB_PASSWORD', ''),
+          database: config.get('DB_DATABASE', 'dbpractica'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: false,
+          logging: false,
+        } as any;
+      },
     }),
+    DatabaseModule,
     AuthModule,
     UsersModule,
     StudentsModule,

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { studentsService } from '../../../services/students.service';
 import { DataTable } from '../../../components/ui/DataTable';
@@ -9,6 +9,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
 import { FormField, inputClass } from '../../../components/ui/FormField';
 import { PasswordStrengthInput, isPasswordValid } from '../../../components/ui/PasswordStrengthInput';
+import { SearchInput } from '../../../components/ui/SearchInput';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Spinner } from '../../../components/ui/Spinner';
@@ -149,6 +150,7 @@ export default function StudentsPage() {
   const role = useRole();
   const qc = useQueryClient();
   const [filterActivo, setFilterActivo] = useState<FilterActivo>('all');
+  const [search, setSearch] = useState('');
   const [modal, setModal] = useState<{ type: 'create' | 'edit'; student?: Student } | null>(null);
   const [viewStudent, setViewStudent] = useState<Student | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
@@ -156,8 +158,8 @@ export default function StudentsPage() {
   const activoParam = filterActivo === 'all' ? undefined : filterActivo === 'true';
 
   const { data: students = [], isLoading } = useQuery({
-    queryKey: ['students', filterActivo],
-    queryFn: () => studentsService.getAll(activoParam),
+    queryKey: ['students', filterActivo, search],
+    queryFn: () => studentsService.getAll(activoParam, search),
   });
 
   const createMut = useMutation({
@@ -172,11 +174,19 @@ export default function StudentsPage() {
     onError: (e: any) => toast.error(e.response?.data?.message || 'Error al actualizar'),
   });
 
+  const restoreMut = useMutation({
+    mutationFn: (id: number) => studentsService.restore(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['students'] }); toast.success('Alumno restaurado correctamente'); },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Error al restaurar'),
+  });
+
   const deleteMut = useMutation({
     mutationFn: studentsService.delete,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['students'] }); setDeleteTarget(null); toast.success('Alumno desactivado'); },
     onError: (e: any) => { setDeleteTarget(null); toast.error(e.response?.data?.message || 'Error al desactivar'); },
   });
+
+  const isInactiveView = filterActivo === 'false';
 
   const columns = [
     { key: 'nombre', header: 'Nombre', render: (r: Student) => <span className="font-medium">{r.user.nombre}</span> },
@@ -196,13 +206,24 @@ export default function StudentsPage() {
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setViewStudent(r)} title="Ver detalle">
             <Eye className="h-3.5 w-3.5" />
           </Button>
-          {role && can.editStudent(role) && (
+          {!isInactiveView && role && can.editStudent(role) && (
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setModal({ type: 'edit', student: r })} title="Editar">
               <Pencil className="h-3.5 w-3.5" />
             </Button>
           )}
-          {role && can.deleteStudent(role) && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(r)} title="Eliminar">
+          {isInactiveView && role && can.editStudent(role) && (
+            <Button
+              variant="ghost" size="icon"
+              className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+              onClick={() => restoreMut.mutate(r.id)}
+              disabled={restoreMut.isPending}
+              title="Restaurar alumno"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {!isInactiveView && role && can.deleteStudent(role) && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(r)} title="Desactivar">
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           )}
@@ -225,12 +246,20 @@ export default function StudentsPage() {
         )}
       </div>
 
-      <FilterStatusToggle
-        value={filterActivo}
-        onChange={setFilterActivo}
-        hasInactiveRecords={filterActivo === 'false' && students.length > 0}
-        onRestore={() => setFilterActivo('all')}
-      />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por nombre, correo o CURP..."
+          className="sm:max-w-xs"
+        />
+        <FilterStatusToggle
+          value={filterActivo}
+          onChange={(v) => { setFilterActivo(v); setSearch(''); }}
+          hasInactiveRecords={filterActivo === 'false' && students.length > 0}
+          onRestore={() => setFilterActivo('all')}
+        />
+      </div>
 
       <DataTable columns={columns} data={students} loading={isLoading} emptyMessage="No hay alumnos registrados" />
 

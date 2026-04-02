@@ -10,9 +10,23 @@ export class GetStudentsUseCase {
     private studentRepo: Repository<StudentEntity>,
   ) {}
 
-  async findAll(activo?: boolean) {
-    const where = activo !== undefined ? { user: { activo } } : {};
-    return this.studentRepo.find({ where, relations: ['user', 'user.role'] });
+  async findAll(activo?: boolean, search?: string) {
+    const qb = this.studentRepo
+      .createQueryBuilder('student')
+      .leftJoinAndSelect('student.user', 'user')
+      .leftJoinAndSelect('user.role', 'role');
+
+    if (activo !== undefined) {
+      qb.andWhere('user.activo = :activo', { activo });
+    }
+    if (search) {
+      qb.andWhere(
+        '(user.nombre LIKE :q OR user.email LIKE :q OR student.curp LIKE :q OR student.telefono LIKE :q)',
+        { q: `%${search}%` },
+      );
+    }
+
+    return qb.getMany();
   }
 
   async findOne(id: number) {

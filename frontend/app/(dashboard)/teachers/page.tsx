@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Trash2, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { teachersService } from '../../../services/teachers.service';
 import { DataTable } from '../../../components/ui/DataTable';
@@ -17,6 +17,7 @@ import { validationMessages as vm } from '../../../lib/validationMessages';
 import { useRole } from '../../../hooks/useRole';
 import { can } from '../../../lib/permissions';
 import { FilterStatusToggle, FilterActivo } from '../../../components/ui/FilterStatusToggle';
+import { SearchInput } from '../../../components/ui/SearchInput';
 import { Teacher } from '../../../types';
 
 function TeacherForm({ onSubmit, loading, initial }: {
@@ -122,15 +123,17 @@ export default function TeachersPage() {
   const role = useRole();
   const qc = useQueryClient();
   const [filterActivo, setFilterActivo] = useState<FilterActivo>('all');
+  const [search, setSearch] = useState('');
   const [modal, setModal] = useState<{ type: 'create' | 'edit'; teacher?: Teacher } | null>(null);
   const [viewTeacher, setViewTeacher] = useState<Teacher | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Teacher | null>(null);
 
   const activoParam = filterActivo === 'all' ? undefined : filterActivo === 'true';
+  const isInactiveView = filterActivo === 'false';
 
   const { data: teachers = [], isLoading } = useQuery({
-    queryKey: ['teachers', filterActivo],
-    queryFn: () => teachersService.getAll(activoParam),
+    queryKey: ['teachers', filterActivo, search],
+    queryFn: () => teachersService.getAll(activoParam, search),
   });
 
   const createMut = useMutation({
@@ -143,6 +146,12 @@ export default function TeachersPage() {
     mutationFn: ({ id, data }: any) => teachersService.update(id, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['teachers'] }); setModal(null); toast.success('Maestro actualizado correctamente'); },
     onError: (e: any) => toast.error(e.response?.data?.message || 'Error al actualizar'),
+  });
+
+  const restoreMut = useMutation({
+    mutationFn: (id: number) => teachersService.restore(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['teachers'] }); toast.success('Maestro restaurado correctamente'); },
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Error al restaurar'),
   });
 
   const deleteMut = useMutation({
@@ -171,13 +180,24 @@ export default function TeachersPage() {
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setViewTeacher(r)} title="Ver detalle">
             <Eye className="h-3.5 w-3.5" />
           </Button>
-          {role && can.editTeacher(role) && (
+          {!isInactiveView && role && can.editTeacher(role) && (
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setModal({ type: 'edit', teacher: r })} title="Editar">
               <Pencil className="h-3.5 w-3.5" />
             </Button>
           )}
-          {role && can.deleteTeacher(role) && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(r)} title="Eliminar">
+          {isInactiveView && role && can.editTeacher(role) && (
+            <Button
+              variant="ghost" size="icon"
+              className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+              onClick={() => restoreMut.mutate(r.id)}
+              disabled={restoreMut.isPending}
+              title="Restaurar maestro"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {!isInactiveView && role && can.deleteTeacher(role) && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget(r)} title="Desactivar">
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           )}
@@ -200,12 +220,20 @@ export default function TeachersPage() {
         )}
       </div>
 
-      <FilterStatusToggle
-        value={filterActivo}
-        onChange={setFilterActivo}
-        hasInactiveRecords={filterActivo === 'false' && teachers.length > 0}
-        onRestore={() => setFilterActivo('all')}
-      />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por nombre, correo o especialidad..."
+          className="sm:max-w-xs"
+        />
+        <FilterStatusToggle
+          value={filterActivo}
+          onChange={(v) => { setFilterActivo(v); setSearch(''); }}
+          hasInactiveRecords={filterActivo === 'false' && teachers.length > 0}
+          onRestore={() => setFilterActivo('all')}
+        />
+      </div>
 
       <DataTable columns={columns} data={teachers} loading={isLoading} emptyMessage="No hay maestros registrados" />
 

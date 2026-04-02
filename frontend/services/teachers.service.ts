@@ -2,8 +2,10 @@ import api from './api';
 import { ApiResponse, Teacher } from '../types';
 
 export const teachersService = {
-  async getAll(activo?: boolean): Promise<Teacher[]> {
-    const params = activo !== undefined ? { activo } : {};
+  async getAll(activo?: boolean, search?: string): Promise<Teacher[]> {
+    const params: Record<string, any> = {};
+    if (activo !== undefined) params.activo = activo;
+    if (search?.trim()) params.search = search.trim();
     const res = await api.get<ApiResponse<Teacher[]>>('/teachers', { params });
     return res.data.data;
   },
@@ -20,6 +22,11 @@ export const teachersService = {
 
   async update(id: number, data: any): Promise<Teacher> {
     const res = await api.patch<ApiResponse<Teacher>>(`/teachers/${id}`, data);
+    return res.data.data;
+  },
+
+  async restore(id: number): Promise<Teacher> {
+    const res = await api.patch<ApiResponse<Teacher>>(`/teachers/${id}`, { activo: true });
     return res.data.data;
   },
 

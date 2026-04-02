@@ -33,6 +33,7 @@ export interface Subject {
   nombre: string;
   descripcion: string | null;
   creditos: number;
+  activo: boolean;
   teacher: Teacher | null;
   created_at: string;
 }

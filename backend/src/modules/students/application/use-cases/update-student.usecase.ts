@@ -36,6 +36,8 @@ export class UpdateStudentUseCase {
       student.user.email = dto.email;
     }
 
+    if (dto.activo !== undefined) student.user.activo = dto.activo;
+
     await this.userRepo.save(student.user);
     return this.studentRepo.save(student);
   }

@@ -16,7 +16,7 @@ export class GradeEntity {
   @JoinColumn({ name: 'enrollment_id' })
   enrollment: EnrollmentEntity;
 
-  @Column({ type: 'tinyint', unsigned: true })
+  @Column({ type: 'smallint' })
   parcial: number;
 
   @Column({ type: 'decimal', precision: 5, scale: 2 })

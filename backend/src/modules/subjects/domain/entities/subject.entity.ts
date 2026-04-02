@@ -31,7 +31,7 @@ export class SubjectEntity {
   @OneToMany(() => EnrollmentEntity, (e) => e.subject)
   enrollments: EnrollmentEntity[];
 
-  @Column({ type: 'tinyint', width: 1, default: 1 })
+  @Column({ type: 'boolean', default: true })
   activo: boolean;
 
   @CreateDateColumn({ name: 'created_at' })
