@@ -33,6 +33,8 @@ import { DatabaseModule } from './database/database.module';
             synchronize: true,
             logging: false,
             ssl: { rejectUnauthorized: false },
+            retryAttempts: 10,
+            retryDelay: 5000,
           };
         }
 
