@@ -31,7 +31,7 @@ export default function PaymentsPage() {
 
   const { data: pending = [], isLoading: pendingLoading } = useQuery({
     queryKey: ['payments-pending'],
-    queryFn: paymentsService.getPending,
+    queryFn: () => paymentsService.getPending(),
     enabled: tab === 'pending',
   });
 

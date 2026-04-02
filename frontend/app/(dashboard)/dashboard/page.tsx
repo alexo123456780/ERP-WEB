@@ -38,15 +38,15 @@ export default function DashboardPage() {
   });
   const { data: subjects, isLoading: loadingSubjects } = useQuery({
     queryKey: ['subjects'],
-    queryFn: subjectsService.getAll,
+    queryFn: () => subjectsService.getAll(),
   });
   const { data: pending, isLoading: loadingPending } = useQuery({
     queryKey: ['payments-pending'],
-    queryFn: paymentsService.getPending,
+    queryFn: () => paymentsService.getPending(),
   });
   const { data: allPayments, isLoading: loadingAllPayments } = useQuery({
     queryKey: ['payments-all'],
-    queryFn: paymentsService.getAll,
+    queryFn: () => paymentsService.getAll(),
     enabled: canSeeCharts,
   });
 
