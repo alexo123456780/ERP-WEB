@@ -13,6 +13,7 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { SystemConfigModule } from './modules/system-config/system-config.module';
 import { DatabaseModule } from './database/database.module';
+import { CloudinaryModule } from './common/cloudinary/cloudinary.module';
 
 @Module({
   controllers: [AppController],
@@ -52,6 +53,7 @@ import { DatabaseModule } from './database/database.module';
         };
       },
     }),
+    CloudinaryModule,
     DatabaseModule,
     AuthModule,
     UsersModule,

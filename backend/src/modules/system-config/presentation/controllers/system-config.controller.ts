@@ -10,10 +10,10 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
-import { mkdirSync } from 'fs';
+import { memoryStorage } from 'multer';
+import { extname } from 'path';
 import { InjectRepository } from '@nestjs/typeorm';
+import { CloudinaryService } from '../../../../common/cloudinary/cloudinary.service';
 import { Repository } from 'typeorm';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
@@ -33,6 +33,7 @@ export class SystemConfigController {
   constructor(
     @InjectRepository(SystemConfigEntity)
     private configRepo: Repository<SystemConfigEntity>,
+    private cloudinary: CloudinaryService,
   ) {}
 
   /** GET /system-config — público, sin autenticación */
@@ -69,27 +70,23 @@ export class SystemConfigController {
   @Roles('admin')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (_req, _file, cb) => {
-          const dest = join(process.cwd(), 'public', 'uploads', 'login-bg');
-          mkdirSync(dest, { recursive: true });
-          cb(null, dest);
-        },
-        filename: (_req, file, cb) => {
-          const ext = extname(file.originalname).toLowerCase();
-          const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
-          if (!allowed.includes(ext)) {
-            return cb(new BadRequestException('Solo se permiten imágenes JPG, PNG o WebP'), '');
-          }
-          cb(null, `login-bg_${Date.now()}${ext}`);
-        },
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+        if (!allowed.includes(extname(file.originalname).toLowerCase())) {
+          return cb(new BadRequestException('Solo se permiten imágenes JPG, PNG o WebP'), false);
+        }
+        cb(null, true);
+      },
     }),
   )
   async uploadLoginBg(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No se recibió archivo');
-    const login_bg_url = `/public/uploads/login-bg/${file.filename}`;
+    const login_bg_url = await this.cloudinary.uploadImage(
+      file.buffer,
+      'erp/login-bg/login-bg',
+    );
     let row = await this.configRepo.findOne({ where: { key: 'login_bg_url' } });
     if (!row) {
       row = this.configRepo.create({ key: 'login_bg_url', value: login_bg_url });

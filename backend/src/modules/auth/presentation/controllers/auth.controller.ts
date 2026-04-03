@@ -12,9 +12,10 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { memoryStorage } from 'multer';
+import { extname } from 'path';
 import * as bcrypt from 'bcrypt';
+import { CloudinaryService } from '../../../../common/cloudinary/cloudinary.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LoginUseCase } from '../../application/use-cases/login.usecase';
@@ -51,6 +52,7 @@ export class AuthController {
     private registerUseCase: RegisterUseCase,
     @InjectRepository(UserEntity)
     private userRepo: Repository<UserEntity>,
+    private cloudinary: CloudinaryService,
   ) {}
 
   @Post('login')
@@ -92,18 +94,15 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('avatar', {
-      storage: diskStorage({
-        destination: join(process.cwd(), 'public', 'uploads', 'avatars'),
-        filename: (_req, file, cb) => {
-          const ext = extname(file.originalname);
-          const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
-          if (!allowed.includes(ext.toLowerCase())) {
-            return cb(new BadRequestException('Tipo de archivo no permitido'), '');
-          }
-          cb(null, `${(_req as any).user.id}_${Date.now()}${ext}`);
-        },
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 2 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+        if (!allowed.includes(extname(file.originalname).toLowerCase())) {
+          return cb(new BadRequestException('Tipo de archivo no permitido'), false);
+        }
+        cb(null, true);
+      },
     }),
   )
   async uploadAvatar(
@@ -113,7 +112,10 @@ export class AuthController {
     if (!file) throw new BadRequestException('No se recibió archivo');
     const user = await this.userRepo.findOne({ where: { id: req.user.id } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
-    const foto_url = `/public/uploads/avatars/${file.filename}`;
+    const foto_url = await this.cloudinary.uploadImage(
+      file.buffer,
+      `erp/avatars/avatar_${req.user.id}`,
+    );
     user.foto_url = foto_url;
     await this.userRepo.save(user);
     return { foto_url };
