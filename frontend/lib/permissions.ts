@@ -37,6 +37,9 @@ export const can = {
   createPayment:       (r: Role) => r === 'admin',
   updatePaymentStatus: (r: Role) => r === 'admin',
   viewPendingPayments: (r: Role) => r === 'admin',
+
+  // Configuración del sistema
+  viewSystemSettings:  (r: Role) => r === 'admin',
 };
 
 /** Determina si un rol puede acceder a una ruta del nav. */
@@ -48,7 +51,8 @@ export function canAccessNav(href: string, role: Role): boolean {
     case '/subjects':    return can.viewSubjectsList(role);
     case '/grades':      return can.viewGrades(role);
     case '/attendance':  return can.viewAttendance(role);
-    case '/payments':    return can.viewPayments(role);
-    default:             return false;
+    case '/payments':        return can.viewPayments(role);
+    case '/admin/settings':  return can.viewSystemSettings(role);
+    default:                 return false;
   }
 }

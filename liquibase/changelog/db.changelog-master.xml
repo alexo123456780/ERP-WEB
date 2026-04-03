@@ -88,6 +88,19 @@
         </rollback>
     </changeSet>
 
+    <!-- ── 005 · Tabla de configuración del sistema ────────────── -->
+    <changeSet id="005-add-system-config" author="erp-team">
+        <comment>Crea la tabla system_config para almacenar configuración dinámica (clave-valor) e inserta valores por defecto.</comment>
+        <sqlFile path="changesets/005-add-system-config.sql"
+                 relativeToChangelogFile="true"
+                 splitStatements="true"
+                 stripComments="true"
+                 endDelimiter=";"/>
+        <rollback>
+            DROP TABLE IF EXISTS `system_config`;
+        </rollback>
+    </changeSet>
+
     <!--
         ── AÑADIR NUEVAS MIGRACIONES AQUÍ ──────────────────────────
         Ejemplo:
