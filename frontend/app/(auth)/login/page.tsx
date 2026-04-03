@@ -1,6 +1,6 @@
 'use client';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -9,22 +9,15 @@ import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { FieldError } from '../../../components/ui/FieldError';
 import { useFormValidation } from '../../../hooks/useFormValidation';
 import { Spinner } from '../../../components/ui/Spinner';
+import { useSystemConfig } from '../../../components/SystemConfigProvider';
+import { systemConfigService } from '../../../services/system-config.service';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loginBgUrl, setLoginBgUrl] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    import('../../../services/system-config.service').then(({ systemConfigService }) => {
-      systemConfigService.getConfig().then((config) => {
-        const url = systemConfigService.getLoginBgUrl(config.login_bg_url);
-        if (url) setLoginBgUrl(url);
-        systemConfigService.applyConfig(config);
-      }).catch(() => {});
-    });
-  }, []);
+  const config = useSystemConfig();
+  const loginBgUrl = systemConfigService.getLoginBgUrl(config.login_bg_url);
 
   const { values, handleChange, handleBlur, validate, fieldError, submitDisabled } = useFormValidation(
     { email: '', password: '' },
