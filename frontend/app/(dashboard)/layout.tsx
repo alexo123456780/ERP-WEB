@@ -16,6 +16,7 @@ import {
   ClipboardList,
   CalendarCheck,
   CreditCard,
+  Settings,
   LogOut,
   Menu,
   Moon,
@@ -36,6 +37,7 @@ const allNavItems = [
   { href: '/grades', label: 'Calificaciones', icon: ClipboardList },
   { href: '/attendance', label: 'Asistencias', icon: CalendarCheck },
   { href: '/payments', label: 'Pagos', icon: CreditCard },
+  { href: '/admin/settings', label: 'Configuración', icon: Settings },
 ];
 
 function NavLink({
@@ -261,7 +263,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const currentLabel =
     pathname === '/profile'
       ? 'Mi Perfil'
-      : (allNavItems.find((n) => pathname.startsWith(n.href))?.label ?? 'Dashboard');
+      : pathname.startsWith('/admin/settings')
+      ? 'Configuración'
+      : (allNavItems.find((n) => n.href !== '/dashboard' && pathname.startsWith(n.href))?.label
+          ?? (pathname === '/dashboard' ? 'Dashboard' : 'Dashboard'));
 
   const sidebarWidth = collapsed ? 'lg:w-14' : 'lg:w-60';
   const mainPadding = collapsed ? 'lg:pl-14' : 'lg:pl-60';

@@ -1,6 +1,6 @@
 'use client';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -14,6 +14,17 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginBgUrl, setLoginBgUrl] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    import('../../../services/system-config.service').then(({ systemConfigService }) => {
+      systemConfigService.getConfig().then((config) => {
+        const url = systemConfigService.getLoginBgUrl(config.login_bg_url);
+        if (url) setLoginBgUrl(url);
+        systemConfigService.applyConfig(config);
+      }).catch(() => {});
+    });
+  }, []);
 
   const { values, handleChange, handleBlur, validate, fieldError, submitDisabled } = useFormValidation(
     { email: '', password: '' },
@@ -44,10 +55,23 @@ export default function LoginPage() {
       <div
         aria-hidden="true"
         className="hidden lg:flex lg:w-[55%] relative flex-col items-center justify-center overflow-hidden select-none"
-        style={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #0f2744 70%, #0c1a2e 100%)',
-        }}
+        style={
+          loginBgUrl
+            ? {
+                backgroundImage: `url(${loginBgUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }
+            : {
+                background: 'linear-gradient(135deg, #052e16 0%, #14532d 40%, #166534 70%, #15803d 100%)',
+              }
+        }
       >
+        {/* Overlay when custom bg */}
+        {loginBgUrl && (
+          <div className="absolute inset-0 bg-black/50" />
+        )}
+
         {/* Decorative grid */}
         <div
           className="absolute inset-0 opacity-[0.04]"
@@ -59,8 +83,8 @@ export default function LoginPage() {
         />
 
         {/* Glow circles */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-indigo-600/20 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 rounded-full bg-blue-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-green-600/20 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
 
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center gap-8 px-12 text-center">
@@ -79,10 +103,10 @@ export default function LoginPage() {
             <h1 className="text-4xl font-extrabold tracking-tight text-white">
               EduCore ERP
             </h1>
-            <p className="text-lg text-indigo-200 font-medium">
+            <p className="text-lg text-green-200 font-medium">
               Sistema de gestión escolar
             </p>
-            <p className="text-sm text-slate-400 max-w-xs leading-relaxed">
+            <p className="text-sm text-slate-300 max-w-xs leading-relaxed">
               Administra alumnos, maestros, calificaciones y pagos desde una sola plataforma.
             </p>
           </div>

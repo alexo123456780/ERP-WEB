@@ -11,6 +11,7 @@ import { SubjectsModule } from './modules/subjects/subjects.module';
 import { GradesModule } from './modules/grades/grades.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { SystemConfigModule } from './modules/system-config/system-config.module';
 import { DatabaseModule } from './database/database.module';
 
 @Module({
@@ -60,6 +61,7 @@ import { DatabaseModule } from './database/database.module';
     GradesModule,
     AttendanceModule,
     PaymentsModule,
+    SystemConfigModule,
   ],
 })
 export class AppModule {}
