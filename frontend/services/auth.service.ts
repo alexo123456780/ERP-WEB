@@ -25,6 +25,9 @@ export const authService = {
 
   saveUser(user: AuthData['user']) {
     localStorage.setItem('user', JSON.stringify(user));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('user-saved'));
+    }
   },
 
   isAuthenticated() {

@@ -238,6 +238,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (u) setUser(u);
   }, [pathname]);
 
+  // Refresh user immediately when avatar or profile data changes
+  useEffect(() => {
+    const handleUserSaved = () => {
+      const u = authService.getUser();
+      if (u) setUser(u);
+    };
+    window.addEventListener('user-saved', handleUserSaved);
+    return () => window.removeEventListener('user-saved', handleUserSaved);
+  }, []);
+
   const toggleCollapse = () => {
     const next = !collapsed;
     setCollapsed(next);

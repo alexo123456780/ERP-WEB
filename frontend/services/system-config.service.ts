@@ -1,4 +1,5 @@
 import api from './api';
+import type { ApiResponse } from '../types';
 
 export type SystemConfig = {
   primary_color?: string | null;
@@ -9,22 +10,22 @@ export type SystemConfig = {
 
 export const systemConfigService = {
   async getConfig(): Promise<SystemConfig> {
-    const res = await api.get<SystemConfig>('/system-config');
-    return res.data;
+    const res = await api.get<ApiResponse<SystemConfig>>('/system-config');
+    return res.data.data;
   },
 
   async updateConfig(config: Partial<SystemConfig>): Promise<SystemConfig> {
-    const res = await api.put<SystemConfig>('/system-config', { config });
-    return res.data;
+    const res = await api.put<ApiResponse<SystemConfig>>('/system-config', { config });
+    return res.data.data;
   },
 
   async uploadLoginBg(file: File): Promise<{ login_bg_url: string }> {
     const form = new FormData();
     form.append('file', file);
-    const res = await api.post<{ login_bg_url: string }>('/system-config/login-bg', form, {
+    const res = await api.post<ApiResponse<{ login_bg_url: string }>>('/system-config/login-bg', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return res.data;
+    return res.data.data;
   },
 
   getLoginBgUrl(path: string | null | undefined): string | undefined {
