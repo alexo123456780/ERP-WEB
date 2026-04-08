@@ -22,9 +22,16 @@ export default function GradesPage() {
   const qc = useQueryClient();
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
   const [modal, setModal] = useState(false);
+  const [modalStudent, setModalStudent] = useState<number | null>(null);
   const [form, setForm] = useState({ enrollment_id: '', parcial: '1', calificacion: '', fecha: '' });
 
   const { data: students = [] } = useQuery({ queryKey: ['students'], queryFn: () => studentsService.getAll() });
+
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ['enrollments', modalStudent],
+    queryFn: () => modalStudent ? studentsService.getEnrollments(modalStudent) : Promise.resolve([]),
+    enabled: !!modalStudent,
+  });
 
   const { data: grades = [], isLoading } = useQuery({
     queryKey: ['grades', selectedStudent],
@@ -44,6 +51,7 @@ export default function GradesPage() {
       qc.invalidateQueries({ queryKey: ['grades'] });
       qc.invalidateQueries({ queryKey: ['grades-avg'] });
       setModal(false);
+      setModalStudent(null);
       setForm({ enrollment_id: '', parcial: '1', calificacion: '', fecha: '' });
       toast.success('Calificación registrada correctamente');
     },
@@ -82,7 +90,7 @@ export default function GradesPage() {
         <div className="flex items-center gap-2">
           <ExportButton data={grades} columns={columns} filename="calificaciones" disabled={isLoading || !selectedStudent} />
           {role && can.createGrade(role) && (
-            <Button onClick={() => setModal(true)} size="sm">
+            <Button onClick={() => { setModalStudent(selectedStudent); setModal(true); }} size="sm">
               <Plus className="h-4 w-4 mr-1.5" />Registrar calificación
             </Button>
           )}
@@ -122,7 +130,7 @@ export default function GradesPage() {
         <DataTable columns={columns} data={grades} loading={isLoading} emptyMessage="Sin calificaciones registradas" />
       )}
 
-      <Modal open={modal} onClose={() => setModal(false)} title="Registrar calificación">
+      <Modal open={modal} onClose={() => { setModal(false); setModalStudent(null); }} title="Registrar calificación">
         <form onSubmit={(e) => {
           e.preventDefault();
           createMut.mutate({
@@ -132,8 +140,17 @@ export default function GradesPage() {
             fecha: form.fecha || undefined,
           });
         }} className="space-y-4">
-          <FormField label="ID de inscripción (enrollment_id)">
-            <input type="number" className={inputClass} value={form.enrollment_id} onChange={(e) => setForm((f) => ({ ...f, enrollment_id: e.target.value }))} required min={1} placeholder="ID numérico" />
+          <FormField label="Alumno">
+            <select className={inputClass} value={modalStudent ?? ''} onChange={(e) => { setModalStudent(e.target.value ? Number(e.target.value) : null); setForm((f) => ({ ...f, enrollment_id: '' })); }} required>
+              <option value="">Seleccionar alumno...</option>
+              {students.map((s: Student) => <option key={s.id} value={s.id}>{s.user.nombre} — {s.curp}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Materia">
+            <select className={inputClass} value={form.enrollment_id} onChange={(e) => setForm((f) => ({ ...f, enrollment_id: e.target.value }))} required disabled={!modalStudent || enrollments.length === 0}>
+              <option value="">{!modalStudent ? 'Primero selecciona un alumno' : enrollments.length === 0 ? 'Sin inscripciones' : 'Seleccionar materia...'}</option>
+              {enrollments.map((e) => <option key={e.id} value={e.id}>{e.subject?.nombre} — {e.ciclo}</option>)}
+            </select>
           </FormField>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Parcial">

@@ -38,4 +38,9 @@ export const studentsService = {
     const res = await api.get<ApiResponse<any>>(`/students/${id}/history`);
     return res.data.data;
   },
+
+  async getEnrollments(id: number): Promise<{ id: number; ciclo: string; subject: { id: number; nombre: string } }[]> {
+    const res = await api.get<ApiResponse<any[]>>(`/students/${id}/enrollments`);
+    return res.data.data;
+  },
 };

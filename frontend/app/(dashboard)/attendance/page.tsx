@@ -23,9 +23,16 @@ export default function AttendancePage() {
   const qc = useQueryClient();
   const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
   const [modal, setModal] = useState(false);
+  const [modalStudent, setModalStudent] = useState<number | null>(null);
   const [form, setForm] = useState({ enrollment_id: '', fecha: new Date().toISOString().split('T')[0], presente: true, justificado: false });
 
   const { data: students = [] } = useQuery({ queryKey: ['students'], queryFn: () => studentsService.getAll() });
+
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ['enrollments', modalStudent],
+    queryFn: () => modalStudent ? studentsService.getEnrollments(modalStudent) : Promise.resolve([]),
+    enabled: !!modalStudent,
+  });
 
   const { data: attendanceData, isLoading } = useQuery({
     queryKey: ['attendance', selectedStudent],
@@ -38,6 +45,7 @@ export default function AttendancePage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['attendance'] });
       setModal(false);
+      setModalStudent(null);
       setForm({ enrollment_id: '', fecha: new Date().toISOString().split('T')[0], presente: true, justificado: false });
       toast.success('Asistencia registrada correctamente');
     },
@@ -78,7 +86,7 @@ export default function AttendancePage() {
         <div className="flex items-center gap-2">
           <ExportButton data={attendanceData?.records ?? []} columns={columns} filename="asistencias" disabled={isLoading || !selectedStudent} />
           {role && can.createAttendance(role) && (
-            <Button onClick={() => setModal(true)} size="sm">
+            <Button onClick={() => { setModalStudent(selectedStudent); setModal(true); }} size="sm">
               <Plus className="h-4 w-4 mr-1.5" />Registrar asistencia
             </Button>
           )}
@@ -131,13 +139,22 @@ export default function AttendancePage() {
         <DataTable columns={columns} data={attendanceData?.records ?? []} loading={isLoading} emptyMessage="Sin registros de asistencia" />
       )}
 
-      <Modal open={modal} onClose={() => setModal(false)} title="Registrar asistencia">
+      <Modal open={modal} onClose={() => { setModal(false); setModalStudent(null); }} title="Registrar asistencia">
         <form onSubmit={(e) => {
           e.preventDefault();
           createMut.mutate({ enrollment_id: Number(form.enrollment_id), fecha: form.fecha, presente: form.presente, justificado: form.justificado });
         }} className="space-y-4">
-          <FormField label="ID de inscripción (enrollment_id)">
-            <input type="number" className={inputClass} value={form.enrollment_id} onChange={(e) => setForm((f) => ({ ...f, enrollment_id: e.target.value }))} required min={1} placeholder="ID numérico" />
+          <FormField label="Alumno">
+            <select className={inputClass} value={modalStudent ?? ''} onChange={(e) => { setModalStudent(e.target.value ? Number(e.target.value) : null); setForm((f) => ({ ...f, enrollment_id: '' })); }} required>
+              <option value="">Seleccionar alumno...</option>
+              {students.map((s: Student) => <option key={s.id} value={s.id}>{s.user.nombre} — {s.curp}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Materia">
+            <select className={inputClass} value={form.enrollment_id} onChange={(e) => setForm((f) => ({ ...f, enrollment_id: e.target.value }))} required disabled={!modalStudent || enrollments.length === 0}>
+              <option value="">{!modalStudent ? 'Primero selecciona un alumno' : enrollments.length === 0 ? 'Sin inscripciones' : 'Seleccionar materia...'}</option>
+              {enrollments.map((e) => <option key={e.id} value={e.id}>{e.subject?.nombre} — {e.ciclo}</option>)}
+            </select>
           </FormField>
           <FormField label="Fecha">
             <input type="date" className={inputClass} value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} required />

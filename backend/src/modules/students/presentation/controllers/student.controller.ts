@@ -71,6 +71,19 @@ export class StudentController {
     return this.deleteUC.execute(id);
   }
 
+  @Get(':id/enrollments')
+  @Roles('admin', 'maestro', 'alumno', 'padre')
+  async getEnrollments(@Param('id', ParseIntPipe) id: number) {
+    const student = await this.studentRepo.findOne({ where: { id } });
+    if (!student) throw new NotFoundException('Alumno no encontrado');
+
+    return this.enrollmentRepo.find({
+      where: { student: { id } },
+      relations: ['subject'],
+      order: { ciclo: 'DESC' },
+    });
+  }
+
   @Get(':id/history')
   @Roles('admin', 'maestro', 'alumno', 'padre')
   async getHistory(@Param('id', ParseIntPipe) id: number) {
